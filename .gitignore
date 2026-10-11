@@ -1,0 +1,5 @@
+node_modules/
+tools/t/
+tools/clips/*.wav
+*.log
+.DS_Store

@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffe1f1">
+<title>Julia's Reading Castle</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
+<style>
+/* single-look by choice: pastel princess castle */
+:root{color-scheme:light;--bg:#fff0f8;--pink:#ff7eb6;--deep:#c2185b;--gold:#ffc83d;--cons:#1e66f5;--vowel:#e0245e;--ink:#3b1d3f;--violet:#7c3aed}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;min-height:100%;background:#f6dcf2;background:linear-gradient(#ffe1f1,#e9d5ff);font-family:"Comic Sans MS","Chalkboard SE",system-ui,sans-serif;color:var(--ink);touch-action:manipulation;overflow-x:hidden}
+#app{max-width:760px;margin:0 auto;min-height:100%;padding:16px;display:flex;flex-direction:column;gap:14px}
+h1{margin:0;text-align:center;font-size:clamp(24px,6vw,40px);color:var(--deep);overflow-wrap:anywhere}
+h2{margin:0;font-size:24px;color:var(--deep);overflow-wrap:anywhere}
+.bar{display:flex;justify-content:space-between;align-items:center;font-size:24px;gap:8px}
+.btn{border:0;border-radius:24px;padding:16px 26px;min-height:56px;font:inherit;font-size:24px;font-weight:700;background:var(--pink);color:#fff;box-shadow:0 5px 0 var(--deep);cursor:pointer;touch-action:manipulation}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--deep)}
+.btn:disabled{opacity:.55}
+.btn.gold{background:var(--gold);color:var(--ink);box-shadow:0 5px 0 #c99500}
+.btn.green{background:#2fbf71;box-shadow:0 5px 0 #1b8a4f}
+.btn.violet{background:var(--violet);box-shadow:0 5px 0 #4c1d95}
+.btn.small{font-size:16px;padding:10px 14px;min-height:48px;border-radius:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px}
+.card{background:#fff;border-radius:28px;padding:20px;box-shadow:0 8px 0 #e3b5d6;text-align:center}
+.wordcard{padding:22px 8px;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;position:relative}
+.letters{display:flex;gap:clamp(4px,1.6vw,10px);justify-content:center;width:100%;padding:0 4px}
+.L{--n:3;flex:1 1 0;min-width:0;max-width:130px;height:clamp(100px,26vw,150px);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:min(110px,calc(66vw / var(--n)));font-weight:800;color:#fff;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.25);transition:transform .08s}
+.L.c{background:var(--cons)}.L.v{background:var(--vowel)}
+.L.lit{transform:scale(1.12);filter:brightness(1.25);outline:6px solid var(--gold)}
+.pic{font-size:80px;height:90px;line-height:90px}
+.hint{font-size:20px;min-height:28px;padding:0 6px;overflow-wrap:anywhere}
+.row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.stars{letter-spacing:2px}
+.progress{height:18px;background:#fff;border-radius:12px;overflow:hidden}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--gold));width:0;transition:width .4s}
+.big{font-size:72px}
+.rec{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.rec .btn{font-size:20px;padding:10px;min-height:64px}
+.rec .btn.has{background:#2fbf71;box-shadow:0 5px 0 #1b8a4f}
+.rec .btn.live{background:#e11d48;animation:p 1s infinite}
+@keyframes p{50%{opacity:.6}}
+.pop{animation:pop .5s}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+.hidden{display:none!important}
+.small-note{font-size:14px;opacity:.9;overflow-wrap:anywhere}
+#ab{position:fixed;left:0;right:0;top:0;z-index:9;margin:0;box-shadow:0 4px 12px rgba(0,0,0,.25);padding:14px 16px;background:#fff3c4;border-bottom:4px solid #e0a800;color:#5a3b00;font-size:20px;font-weight:700;text-align:center;cursor:pointer}
+/* microphone button */
+.micwrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.mic{position:relative;width:132px;height:132px;border-radius:50%;border:0;background:radial-gradient(circle at 35% 30%,#ff9ccb,var(--pink) 55%,var(--deep));color:#fff;font-size:62px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 0 #8e0f46;cursor:pointer;touch-action:manipulation;padding:0}
+.mic:active{transform:translateY(4px);box-shadow:0 3px 0 #8e0f46}
+.mic.nudge{animation:nudge 1.2s infinite}
+@keyframes nudge{50%{transform:scale(1.07)}}
+.mic.listening{background:radial-gradient(circle at 35% 30%,#b794f6,var(--violet) 60%,#4c1d95);box-shadow:0 8px 0 #3b0f78}
+.mic.listening::before,.mic.listening::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:5px solid var(--violet);opacity:0;animation:ring 1.4s infinite}
+.mic.listening::after{animation-delay:.7s}
+@keyframes ring{0%{transform:scale(.9);opacity:.8}100%{transform:scale(1.55);opacity:0}}
+.mic.thinking{opacity:.6}
+.mic[data-phase=feedback]{opacity:.4}
+.miclab{font-size:22px;font-weight:700;color:var(--deep);min-height:30px;text-align:center}
+#fx{position:fixed;left:50%;top:36%;width:0;height:0;pointer-events:none;z-index:8}
+#fx span{position:absolute;font-size:34px;animation:fly 1.3s ease-out forwards;margin:-17px 0 0 -17px}
+@keyframes fly{0%{transform:translate(0,0) scale(.4);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.3);opacity:0}}
+.cbpanel{background:linear-gradient(#fff7d6,#ffe08a);border:4px solid var(--gold);border-radius:22px;padding:10px 14px;font-size:22px;font-weight:700;color:#6b4a00}
+.why{font-size:14px;color:#6b4a00;background:#fff3c4;border-radius:12px;padding:8px 10px;overflow-wrap:anywhere;text-align:left;width:100%}
+/* progress screen */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px}
+.tile{background:#fff7fc;border:3px solid #f3c6e3;border-radius:18px;padding:8px 4px;min-height:92px;font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.tile .e{font-size:34px;line-height:1.1}
+.tile.lock{background:#efe9f5;border-color:#d8cfe3;color:#8a7d99}
+.tile.lock .e{filter:grayscale(1) brightness(0);opacity:.22}
+.tile.grow{background:#eefbea;border-color:#b7e4ae}
+.tile.got .tilestar{color:#d19a00;font-size:14px;min-height:18px}
+.tiles.stk{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+.sticker{background:#fff7fc;border:3px solid #f3c6e3;border-radius:18px;padding:8px 4px;min-height:110px;font-size:13px;overflow-wrap:anywhere}
+.sticker .e{font-size:42px;line-height:1.15}
+.sticker.lock{background:#efe9f5;border-color:#d8cfe3;color:#6f6380}
+.sticker.lock .e{filter:grayscale(1) brightness(0);opacity:.22}
+table.gt{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}
+table.gt th,table.gt td{border-bottom:1px solid #eadcf0;padding:4px 2px;overflow-wrap:anywhere;text-align:center;vertical-align:top}
+table.gt th{font-size:12px;color:var(--deep)}
+.holdbtn{position:relative;overflow:hidden}
+.holdbtn i{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(124,58,237,.35);pointer-events:none}
+.holdbtn.holding i{width:100%;transition:width 2s linear}
+@media (max-height:520px) and (orientation:landscape){
+  #app{padding:10px;gap:8px}.wordcard{min-height:0;padding:8px}.pic{font-size:50px;height:56px;line-height:56px}
+  .L{height:84px}.mic{width:96px;height:96px;font-size:44px}
+}
+@media (prefers-reduced-motion:reduce){.mic.nudge,.mic.listening::before,.mic.listening::after,.pop{animation:none}}
+</style>
+</head>
+<body>
+<div id="ab" class="hidden" role="alert"></div>
+<div id="app"></div>
+<script>
+// ---------- data ----------
+const NAME = "JULIA";
+const FAMILIES = {
+  a:{label:"A",emoji:"🐱",words:["SAT","MAT","RAM","SAM","CAT","HAT","MAP","PAN","BAG","CAN","DAD","MAD"]},
+  i:{label:"I",emoji:"🐷",words:["PIG","SIT","BIG","PIN","LIP","DIG","HIT","KID","ZIP"]},
+  o:{label:"O",emoji:"🐶",words:["TOM","HOT","DOG","POT","MOP","TOP","BOX","FOX","HOP"]},
+  u:{label:"U",emoji:"🌞",words:["SUN","BUS","CUP","BUG","MUD","RUN","FUN","NUT","JUG"]},
+  e:{label:"E",emoji:"🐔",words:["RED","PEN","HEN","NET","BED","LEG","WET","JET","TEN"]}
+};
+const PIC = {RAM:"🐏",CAT:"🐱",HAT:"🎩",MAP:"🗺️",PAN:"🍳",BAG:"👜",PIG:"🐷",PIN:"📌",LIP:"👄",HOT:"🔥",DOG:"🐶",POT:"🍲",MOP:"🧹",BOX:"📦",FOX:"🦊",SUN:"🌞",BUS:"🚌",CUP:"☕",BUG:"🐛",NUT:"🥜",RED:"🔴",PEN:"🖊️",HEN:"🐔",NET:"🥅",BED:"🛏️",LEG:"🦵",JET:"✈️",KID:"🧒",DAD:"👨",ZIP:"🤐",SAT:"🪑",SIT:"🪑",SAM:"👦",TOM:"👦",CAN:"🥫",MAD:"😠",MAT:"🧶",BIG:"🐘",DIG:"⛏️",HIT:"🔨",TOP:"🔝",MUD:"🟤",RUN:"🏃",FUN:"🎉",WET:"💧",HOP:"🐇",JUG:"🏺",TEN:"🔟",JULIA:"👑"};
+const ALL_WORDS = [...new Set(Object.values(FAMILIES).flatMap(f=>f.words))];
+const VOWELS = "AEIOU";
+const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+// last-resort robot-voice approximations (only if the built-in clips cannot play at all)
+const TTS_FALLBACK = {A:"aah",B:"buh",C:"kuh",D:"duh",E:"eh",F:"fff",G:"guh",H:"huh",I:"ih",J:"juh",K:"kuh",L:"lll",M:"mmm",N:"nnn",O:"ah",P:"puh",Q:"kwuh",R:"rrr",S:"sss",T:"tuh",U:"uh",V:"vvv",W:"wuh",X:"ks",Y:"yuh",Z:"zzz"};
+// praise clips Ppraise0..7 (all address her or are cheers)
+const PRAISE = ["Great reading, Julia!","You did it, Princess!","Royal reader!","Brilliant, Julia!","Hooray!","Super star, Julia!","Magnificent, Princess Julia!","Wonderful reading, Julia!"];
+const DONE_TEXT = "Well done, Princess Julia! You earned a sticker!";
+const PHRASE = { // Pxxx clips and the robot-voice text used only if a clip cannot play
+  say:"Say the word!", nohear:"I didn't hear you. Tap and try again!", tryagain:"Hmm, let's try again!",
+  soundout:"Let's sound it out together.", nowyou:"Now you say it!", listen:"Listen.",
+  practice:"Great practice, Julia!", comeback:"You got a comeback crown!", room:"A new room in your castle!"
+};
+// Spoken-answer aliases. A recognizer may return digits for a spoken number word, so TEN also accepts "10".
+// Deliberately NOTHING else (no near-homophones, no one-letter slips: "sit" for SAT is a miss by design).
+const ALIASES = { TEN:["10"] };
+// Stickers / castle rooms. Unlock rules are checked by checkUnlocks(); locked ones show as silhouettes.
+const CATALOG = [
+  {id:"r1",  e:"🎀",name:"Sticker Bow",     need:"Finish 1 round",     ok:s=>s.stickers>=1},
+  {id:"cb1", e:"👑",name:"Comeback Crown",  need:"Win 1 comeback",     ok:s=>s.comebacks>=1},
+  {id:"st25",e:"🌟",name:"Star Collector",  need:"Collect 25 stars",   ok:s=>s.stars>=25},
+  {id:"r3",  e:"💎",name:"Sparkle Gem",     need:"Finish 3 rounds",    ok:s=>s.stickers>=3},
+  {id:"cb5", e:"🏰",name:"Throne Room",     need:"Win 5 comebacks",    ok:s=>s.comebacks>=5, room:true},
+  {id:"r6",  e:"🦋",name:"Butterfly Wings", need:"Finish 6 rounds",    ok:s=>s.stickers>=6},
+  {id:"st75",e:"🔮",name:"Magic Orb",       need:"Collect 75 stars",   ok:s=>s.stars>=75},
+  {id:"cb10",e:"📚",name:"Library Tower",   need:"Win 10 comebacks",   ok:s=>s.comebacks>=10, room:true},
+  {id:"r10", e:"🌈",name:"Rainbow Bridge",  need:"Finish 10 rounds",   ok:s=>s.stickers>=10},
+  {id:"cb15",e:"🌹",name:"Rose Garden",     need:"Win 15 comebacks",   ok:s=>s.comebacks>=15, room:true},
+  {id:"st150",e:"🪄",name:"Royal Wand",     need:"Collect 150 stars",  ok:s=>s.stars>=150},
+  {id:"cb25",e:"🦄",name:"Unicorn Stable",  need:"Win 25 comebacks",   ok:s=>s.comebacks>=25, room:true}
+];
+// built-in clips (base64 mp3, generated offline): L<letter> = letter sound, W<WORD> = word, P<name> = phrase
+const CLIPS = __CLIPS__;
+
+// ---------- storage ----------
+// Every localStorage access is wrapped: private windows / blocked storage just mean "nothing is remembered".
+const KEY = "jrg2", MAXLOG = 500;
+const LS = {
+  get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch{return false}}
+};
+const WORD_RE = /^[A-Z]{2,6}$/;           // also keeps "__proto__" / "constructor" out of the maps
+const CAT_IDS = new Set(CATALOG.map(c=>c.id));
+const nz = x => Number.isFinite(+x) && +x > 0 ? Math.min(Math.floor(+x), 1e9) : 0;
+const str = (x,n) => typeof x === "string" ? x.slice(0,n) : "";
+function freshWord(){return {tries:0,wins:0,miss:0,first:0,streak:0,owes:false,missRound:0}}
+function cleanState(s){
+  const o = {stars:0,stickers:0,comebacks:0,streak:0,best:0,roundNo:0,family:"a",words:Object.create(null),attempts:[],earned:Object.create(null),crowns:[]};
+  if(!s || typeof s !== "object" || Array.isArray(s)) return o;
+  o.stars=nz(s.stars); o.stickers=nz(s.stickers); o.comebacks=nz(s.comebacks);
+  o.streak=nz(s.streak); o.best=nz(s.best); o.roundNo=nz(s.roundNo);
+  if(typeof s.family==="string" && Object.prototype.hasOwnProperty.call(FAMILIES,s.family)) o.family=s.family;
+  if(s.words && typeof s.words==="object" && !Array.isArray(s.words)){
+    for(const k of Object.keys(s.words).slice(0,200)){
+      if(!WORD_RE.test(k)) continue;
+      const b=s.words[k]; if(!b || typeof b!=="object") continue;
+      o.words[k]={tries:nz(b.tries),wins:nz(b.wins),miss:nz(b.miss),first:nz(b.first),streak:nz(b.streak),owes:b.owes===true,missRound:nz(b.missRound),heard:str(b.heard,60)};
+    }
+  }
+  if(Array.isArray(s.attempts)){
+    for(const a of s.attempts.slice(-2000)){
+      if(!a || typeof a!=="object" || typeof a.word!=="string" || !WORD_RE.test(a.word)) continue;
+      const e={word:a.word,heard:str(a.heard,60),ok:a.ok===true,step:Math.min(3,Math.max(1,nz(a.step)||1)),ts:Number.isFinite(+a.ts)?+a.ts:0};
+      if(a.practice===true)e.practice=true; if(a.via==="parent")e.via="parent";
+      o.attempts.push(e);
+    }
+    if(o.attempts.length>MAXLOG) o.attempts=o.attempts.slice(-MAXLOG);
+  }
+  if(s.earned && typeof s.earned==="object" && !Array.isArray(s.earned)) for(const k of Object.keys(s.earned)) if(CAT_IDS.has(k)) o.earned[k]=Number.isFinite(+s.earned[k])?+s.earned[k]:1;
+  if(Array.isArray(s.crowns)) for(const c of s.crowns.slice(-200)) if(c && typeof c.w==="string" && WORD_RE.test(c.w)) o.crowns.push({w:c.w,ts:Number.isFinite(+c.ts)?+c.ts:0});
+  return o;
+}
+let state = cleanState(LS.get(KEY,null));
+const save = () => LS.set(KEY,state);
+const esc = x => String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function wstat(w){return state.words[w]||(state.words[w]=freshWord())}
+function logAttempt(word,heard,ok,step,extra){
+  state.attempts.push(Object.assign({word,heard:str(heard,60),ok:!!ok,step,ts:Date.now()},extra||{}));
+  if(state.attempts.length>MAXLOG) state.attempts.splice(0,state.attempts.length-MAXLOG);
+}
+// graded attempt results; practice repeats never count as tries / wins / misses
+function recordMiss(word,heard,step,roundNo,extra){
+  const b=wstat(word); b.tries++; b.miss++; b.streak=0; b.owes=true; b.missRound=roundNo; b.heard=str(heard,60);
+  state.streak=0;
+  logAttempt(word,heard,false,step,extra); save();
+}
+// returns {comeback:bool, unlocked:[catalog items]}
+function recordWin(word,heard,step,roundNo,isRequeue,extra){
+  const b=wstat(word); b.tries++; b.wins++; b.streak++;
+  const firstTry = step===1 && !isRequeue;
+  if(firstTry) b.first++;
+  state.stars++; state.streak++; if(state.streak>state.best) state.best=state.streak;
+  let comeback=false;
+  // Comeback: FIRST-try win on a word that was missed in an EARLIER round and has not been rewarded since.
+  if(firstTry && b.owes && b.missRound<roundNo){
+    comeback=true; b.owes=false; state.comebacks++;
+    state.crowns.push({w:word,ts:Date.now()}); if(state.crowns.length>200) state.crowns.splice(0,state.crowns.length-200);
+  }
+  logAttempt(word,heard,true,step,extra);
+  const unlocked=checkUnlocks(); save();
+  return {comeback,unlocked};
+}
+function recordPractice(word,heard){logAttempt(word,heard,false,3,{practice:true});save()}
+function checkUnlocks(){
+  const out=[];
+  for(const c of CATALOG) if(!state.earned[c.id] && c.ok(state)){state.earned[c.id]=Date.now();out.push(c)}
+  return out;
+}
+const trendOf = word => { // compare the last 3 graded tries with the 3 before them
+  const r=state.attempts.filter(a=>a.word===word && !a.practice).map(a=>a.ok).slice(-6);
+  if(r.length<2) return "-";
+  const h=Math.floor(r.length/2), rate=a=>a.filter(Boolean).length/a.length;
+  const d=rate(r.slice(h))-rate(r.slice(0,h));
+  return d>0.01?"up":d<-0.01?"down":"same";
+};
+let db=null;
+function openDB(){return new Promise(r=>{let done=false;const fin=()=>{if(!done){done=true;r()}};setTimeout(fin,2500);try{const q=indexedDB.open("jrg-audio",1);q.onupgradeneeded=()=>q.result.createObjectStore("s");q.onsuccess=()=>{db=q.result;fin()};q.onerror=fin;q.onblocked=fin}catch{fin()}})}
+const dbGet=k=>new Promise(r=>{try{if(!db)return r();const q=db.transaction("s").objectStore("s").get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()}catch{r()}});
+const dbPut=(k,v)=>new Promise(r=>{try{if(!db)return r();const t=db.transaction("s","readwrite");t.objectStore("s").put(v,k);t.oncomplete=t.onerror=t.onabort=()=>r()}catch{r()}});
+
+// ---------- audio ----------
+// Order of preference for every sound: 1) grown-up recording (letters only)  2) built-in clip via Web Audio
+// 3) built-in clip via <audio>  4) speechSynthesis (robot voice, last resort).
+const recorded={};
+let LIS=null; // active speech-recognition session (see "listening" below)
+
+// ---------- audio ----------
+// Order of preference for every sound: 1) grown-up recording (letters only)  2) built-in clip via Web Audio
+// 3) built-in clip via <audio>  4) speechSynthesis (robot voice, last resort).
+const A={ctx:null,epoch:0,active:new Set(),cache:new Map(),started:0,ended:0,lastErr:"",mode:"",unlockedAt:0};
+function b64ToBuf(s){const bin=atob(s),n=bin.length,u=new Uint8Array(n);for(let i=0;i<n;i++)u[i]=bin.charCodeAt(i);return u.buffer}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function showBanner(msg){const el=document.getElementById("ab");if(!el)return;el.textContent=msg;el.classList.remove("hidden")}
+function hideBanner(){const el=document.getElementById("ab");if(el)el.classList.add("hidden")}
+function getCtx(){
+  if(A.ctx)return A.ctx;
+  try{const C=window.AudioContext||window.webkitAudioContext;if(C){A.ctx=new C();A.ctx.onstatechange=()=>{clearTimeout(unlock.t);unlock.t=setTimeout(checkCtx,300)}}}catch(e){A.lastErr="AudioContext: "+e}
+  return A.ctx;
+}
+// Must be called from a user gesture (it is wired to the first touch/click on the page).
+function unlock(){
+  const c=getCtx();
+  if(c){
+    try{
+      const p=c.resume();if(p&&p.catch)p.catch(e=>{A.lastErr="resume: "+e});
+      if(!A.unlockedAt){const b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0);A.unlockedAt=Date.now();preload()}
+    }catch(e){A.lastErr="unlock: "+e}
+  }
+  clearTimeout(unlock.t);
+  unlock.t=setTimeout(checkCtx,700);
+}
+function checkCtx(){
+  const c=A.ctx;
+  if(!c){ if(!window.Audio&&!window.speechSynthesis)showBanner("🔇 This device can't play sound in this page. Ask a grown-up to try Chrome."); return }
+  if(c.state==="running"){ if(!A.badDecode)hideBanner(); return }
+  if(LIS)return; // the microphone may pause audio while listening; we resume afterwards instead of nagging
+  showBanner("🔇 Sound is asleep. Tap here to wake it up! 👆");
+}
+["pointerdown","touchstart","touchend","click","keydown"].forEach(ev=>document.addEventListener(ev,unlock,{capture:true,passive:true}));
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden"){stopAll();cancelListen();return}
+  if(A.ctx&&A.ctx.state!=="running"){try{A.ctx.resume().catch(()=>{})}catch{}}
+});
+document.getElementById("ab").onclick=()=>{unlock();A.badDecode=false;hideBanner();setTimeout(checkCtx,800);say("W","SUN","sun")};
+
+function decode(ab){return new Promise((res,rej)=>{try{const p=A.ctx.decodeAudioData(ab,res,rej);if(p&&p.catch)p.catch(rej)}catch(e){rej(e)}})}
+function trim(buf){ // skip silence at both ends (mp3 encoder padding, recording lead-in)
+  let s=0,e=buf.length;const d=buf.getChannelData(0),th=0.006;
+  while(s<e&&Math.abs(d[s])<th)s++;
+  while(e>s&&Math.abs(d[e-1])<th)e--;
+  const pad=Math.floor(buf.sampleRate*0.004);s=Math.max(0,s-pad);e=Math.min(buf.length,e+pad);
+  if(e-s<buf.sampleRate*0.02){s=0;e=buf.length}
+  return {buf,off:s/buf.sampleRate,dur:(e-s)/buf.sampleRate};
+}
+function getBuf(key,blob){ // -> Promise<{buf,off,dur}|null>
+  const ck=blob||key;
+  if(A.cache.has(ck))return A.cache.get(ck);
+  const p=(async()=>{
+    if(!getCtx())return null;
+    let ab;
+    if(blob)ab=await blob.arrayBuffer();
+    else{if(!CLIPS[key])return null;ab=b64ToBuf(CLIPS[key])}
+    return trim(await decode(ab));
+  })().catch(e=>{A.lastErr="decode "+key+": "+(e&&e.message||e);A.cache.delete(ck);return null});
+  A.cache.set(ck,p);return p;
+}
+function preload(){
+  (async()=>{
+    const keys=[...ALPHA.map(c=>"L"+c),...Object.keys(CLIPS).filter(k=>k[0]!=="L")];
+    let bad=0;
+    for(const k of keys){ if(!await getBuf(k))bad++; }
+    if(bad>keys.length/2){A.badDecode=true;showBanner("🔇 I couldn't load my sounds. Tap here to try again.")}
+  })();
+}
+function stopAll(){
+  A.epoch++;
+  for(const o of [...A.active]){try{o.stop()}catch{}}
+  A.active.clear();
+  try{if(window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending))speechSynthesis.cancel()}catch{}
+  return A.epoch;
+}
+function playHtmlAudio(url,ep,revoke){
+  return new Promise(res=>{
+    let a;try{a=new Audio(url)}catch(e){A.lastErr="Audio: "+e;return res(false)}
+    let fin=false;const h={stop(){end(true)}};
+    const end=(ok)=>{if(fin)return;fin=true;clearTimeout(tm);A.active.delete(h);try{a.pause()}catch{}if(revoke)try{URL.revokeObjectURL(url)}catch{}res(ok)};
+    const tm=setTimeout(()=>end(true),6000);
+    a.onended=()=>{A.ended++;end(true)};a.onerror=()=>{A.lastErr="audio element error";end(false)};
+    A.active.add(h);
+    if(ep!==A.epoch)return end(false);
+    const p=a.play();
+    if(p&&p.then)p.then(()=>{A.started++;A.mode="audio-element"},e=>{A.lastErr="play(): "+(e&&e.name||e);end(false)});
+  });
+}
+function playBuf(item,ep){
+  return new Promise(res=>{
+    const c=A.ctx;
+    try{
+      if(ep!==A.epoch)return res(false);
+      const src=c.createBufferSource();src.buffer=item.buf;src.connect(c.destination);
+      let fin=false;const h={stop(){try{src.stop()}catch{}end()}};
+      const end=()=>{if(fin)return;fin=true;clearTimeout(tm);A.active.delete(h);res(true)};
+      const tm=setTimeout(end,item.dur*1000+500);
+      src.onended=()=>{A.ended++;end()};
+      A.active.add(h);
+      src.start(0,item.off,item.dur);A.started++;A.mode="webaudio";
+    }catch(e){A.lastErr="start: "+e;res(false)}
+  });
+}
+function tts(text,rate){
+  try{
+    if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return false;
+    const u=new SpeechSynthesisUtterance(text);u.rate=rate||.8;u.pitch=1.2;u.lang="en-US";
+    const v=speechSynthesis.getVoices().find(x=>/^en/i.test(x.lang));if(v)u.voice=v;
+    speechSynthesis.speak(u);A.mode="speechSynthesis";
+    return new Promise(r=>{u.onend=u.onerror=()=>r(true);setTimeout(()=>r(true),2500)});
+  }catch(e){A.lastErr="tts: "+e;return false}
+}
+// say(kind,id,fallbackText): kind "L" letter, "W" word, "P" phrase. Resolves when finished (or cancelled).
+async function say(kind,id,text,opts){
+  const ep=opts&&opts.ep!=null?opts.ep:A.epoch;
+  const key=kind+id;let ok=false;
+  const c=getCtx();
+  if(c&&c.state!=="running"){try{await Promise.race([c.resume(),sleep(400)])}catch{}}
+  if(ep!==A.epoch)return false;
+  if(kind==="L"&&recorded[id]){
+    const it=c&&await getBuf(key,recorded[id]);
+    if(ep!==A.epoch)return false;
+    if(it&&c.state==="running"&&await playBuf(it,ep))ok=true;
+    else if(!ok){try{ok=await playHtmlAudio(URL.createObjectURL(recorded[id]),ep,true)}catch{}}
+    if(ok||ep!==A.epoch)return ok;
+  }
+  if(CLIPS[key]){
+    if(c){
+      const it=await getBuf(key);
+      if(ep!==A.epoch)return false;
+      if(it&&await playBuf(it,ep))return true;
+    }
+    if(ep!==A.epoch)return false;
+    if(await playHtmlAudio("data:audio/mpeg;base64,"+CLIPS[key],ep,false))return true;
+  }
+  if(ep!==A.epoch)return false;
+  const t=await tts(kind==="L"?(TTS_FALLBACK[id]||id):text,kind==="L"?.7:.8);
+  if(!t)showBanner("🔇 I can't make sound right now. Check the volume and the silent switch, then tap here.");
+  return !!t;
+}
+const sayLetter=(L,ep)=>say("L",L,TTS_FALLBACK[L],{ep});
+const sayWord=(w,ep)=>say("W",w,w.toLowerCase(),{ep});
+const sayP=(id,ep)=>say("P",id,PHRASE[id]||id,{ep});
+function wait(ms,ep){return new Promise(r=>setTimeout(()=>r(ep===A.epoch),ms))}
+
+
+// ---------- listening (Web Speech API) ----------
+// One recognition session at a time. A session resolves exactly once with one of:
+//   {t:"result",alts:[...]}  {t:"none"} (silence / nothing usable / ended without a result / timeout)
+//   {t:"error",code}         {t:"cancelled"} (we aborted it ourselves: navigation, letter tap, hidden page)
+// After cancel/finish all handlers are detached, so a late callback from the recognizer can never reach the game.
+const M = {fallback:false, reason:"", fails:0, msg:""};   // fallback = parent-buttons mode for THIS page session
+const HARD_MS = 6000, GRACE_MS = 1500, ABS_MS = 20000;
+const srCtor = () => window.SpeechRecognition || window.webkitSpeechRecognition || null;
+const PARENT_TEXT = {
+  unsupported:"This browser can't listen to speech (the Web Speech API is missing). Use Chrome on Android.",
+  denied:"The microphone is blocked for this site. In Chrome tap the lock/tune icon next to the address, choose Permissions, allow Microphone, then press \"Try the mic again\" on the home screen.",
+  "audio-capture":"Chrome could not use the microphone (another app may be using it, or it is unavailable).",
+  network:"Chrome's speech recognition needs an internet connection (it sends the audio to Google). Check Wi-Fi or mobile data.",
+  other:"Speech recognition failed for an unknown reason.",
+  manual:"Switched to the grown-up buttons by choice."
+};
+function errInfo(code){
+  switch(code){
+    case "not-allowed": case "service-not-allowed": return {reason:"denied",fatal:true};
+    case "language-not-supported": case "bad-grammar": case "unsupported": case "ctor": return {reason:"unsupported",fatal:true};
+    case "audio-capture": return {reason:"audio-capture",fatal:false};
+    case "network": return {reason:"network",fatal:false};
+    default: return {reason:"other",fatal:false};
+  }
+}
+// returns {fatal,reason,kid,parent}; two failures in a row of the soft kinds also switch to parent mode
+function classifyErr(code){
+  const i=errInfo(code);
+  if(!i.fatal){M.fails++; if(M.fails>=2)i.fatal=true}
+  i.parent=PARENT_TEXT[i.reason]||PARENT_TEXT.other;
+  i.kid=i.reason==="network"?"Oops, I couldn't hear that. Tap the 🎤 and try again!":"Oops! Tap the 🎤 and try again!";
+  return i;
+}
+function noteFallback(reason){M.fallback=true;M.reason=reason;M.fails=0}
+function norm(s){
+  return String(s==null?"":s).normalize("NFKD").replace(/[̀-ͯ]/g,"").toLowerCase()
+    .replace(/['’`]/g,"").replace(/[^a-z0-9]+/g," ").trim();
+}
+// RIGHT = any of the alternatives, normalized, equals the target (or a digit alias), or contains it as one whole token
+// ("the sun", "sun sun", "Sun." pass; "sit" for SAT, "suns", "sunny" do not). Returns the matching alternative or null.
+function matches(word,alts){
+  const ok=new Set([word.toLowerCase(),...(ALIASES[word]||[])]);
+  for(const a of alts||[]){
+    const n=norm(a); if(!n)continue;
+    if(ok.has(n))return a;
+    for(const tok of n.split(" ")) if(ok.has(tok))return a;
+  }
+  return null;
+}
+function resumeAudio(){try{if(A.ctx&&A.ctx.state!=="running")A.ctx.resume().catch(()=>{})}catch{}}
+function listen(){
+  return new Promise(resolve=>{
+    const C=srCtor();
+    if(!C){resolve({t:"error",code:"unsupported"});return}
+    cancelListen();
+    let r;
+    try{r=new C()}catch{resolve({t:"error",code:"ctor"});return}
+    const s={r,done:false,timers:[],resolve,started:false};
+    LIS=s;
+    const clear=()=>{s.timers.forEach(clearTimeout);s.timers=[]};
+    const fin=res=>{
+      if(s.done)return; s.done=true; clear(); detach(r); if(LIS===s)LIS=null;
+      setTimeout(resumeAudio,0); resolve(res);
+    };
+    s.fin=fin;
+    s.arm=()=>{ // hard stop after HARD_MS; a stop() normally delivers a final result, else we give up after a short grace
+      s.timers.forEach(clearTimeout);s.timers=[];
+      s.timers.push(setTimeout(()=>{ if(s.done)return; s.stop() },HARD_MS));
+      s.timers.push(setTimeout(()=>giveUp(),ABS_MS));
+    };
+    const giveUp=()=>{ if(s.done)return; try{r.abort()}catch{} fin({t:"none",timeout:true}) };
+    s.stop=()=>{ // user tapped to stop, or the hard timeout: ask for the final result, but never wait forever
+      if(s.done||s.stopping)return; s.stopping=true;
+      try{r.stop()}catch{}
+      s.timers.push(setTimeout(giveUp,GRACE_MS));
+    };
+    try{r.lang="en-US";r.interimResults=false;r.maxAlternatives=5;r.continuous=false}catch{}
+    r.onstart=()=>{ if(s.done||LIS!==s)return; if(!s.started){s.started=true; if(!s.stopping)s.arm()} };   // permission prompt time does not count
+    r.onaudiostart=r.onstart;
+    r.onresult=e=>{
+      if(s.done||LIS!==s)return;
+      const alts=[];
+      try{
+        for(let i=0;i<e.results.length;i++){const res=e.results[i];for(let j=0;j<res.length&&alts.length<5;j++){const t=res[j]&&res[j].transcript;if(typeof t==="string"&&t.trim())alts.push(t)}}
+      }catch{}
+      fin(alts.length?{t:"result",alts}:{t:"none"});
+    };
+    r.onerror=e=>{
+      if(s.done||LIS!==s)return;
+      const code=(e&&e.error)||"unknown";
+      if(code==="no-speech"||code==="aborted")return fin({t:"none"});
+      fin({t:"error",code});
+    };
+    r.onend=()=>{ if(s.done||LIS!==s)return; fin({t:"none"}) };
+    s.arm();
+    try{r.start()}
+    catch(e){
+      // InvalidStateError ("already started") etc.: not the child's fault; let her tap again
+      try{r.abort()}catch{}
+      fin(e&&e.name==="InvalidStateError"?{t:"none",invalid:true}:{t:"error",code:"start-failed"});
+    }
+  });
+}
+function detach(r){["onstart","onaudiostart","onresult","onerror","onend","onspeechstart","onnomatch"].forEach(k=>{try{r[k]=null}catch{}})}
+function stopListening(){ if(LIS&&!LIS.done)LIS.stop() }
+function cancelListen(){
+  const s=LIS; if(!s||s.done)return;
+  s.done=true; s.timers.forEach(clearTimeout); s.timers=[]; LIS=null;
+  detach(s.r); try{s.r.abort()}catch{}
+  s.resolve({t:"cancelled"});
+  setTimeout(resumeAudio,0);
+}
+
+
+// ---------- scheduling (missed words return more often) ----------
+function pickRound(fam){
+  const f=FAMILIES[fam]||FAMILIES.a;
+  const pool=[...new Set(f.words)].map(x=>{const b=state.words[x]||{};return {x,w:Math.max(.3,1+2*nz(b.miss)+(b.owes?1:0)-Math.min(2,nz(b.wins))*0.3)}});
+  const out=[];
+  while(out.length<9&&pool.length){
+    const tot=pool.reduce((s,o)=>s+o.w,0);let r=Math.random()*tot,i=0;
+    for(;i<pool.length;i++){r-=pool[i].w;if(r<=0)break}
+    out.push(pool.splice(Math.min(i,pool.length-1),1)[0].x);
+  }
+  out.push(NAME);return out;
+}
+
+// ---------- ui ----------
+const app=document.getElementById("app");
+const h=(s)=>{app.innerHTML=s};
+let roundId=0,timers=new Set(),rerec=false;
+function later(fn,ms,rid){const t=setTimeout(()=>{timers.delete(t);if(rid===roundId)fn()},ms);timers.add(t);return t}
+const nap=(ms,rid)=>new Promise(r=>later(r,ms,rid)); // never resolves once the screen was left
+function leave(){roundId++;timers.forEach(clearTimeout);timers.clear();stopAll();cancelListen();cancelRec()}
+const $=id=>document.getElementById(id);
+const Name=NAME[0]+NAME.slice(1).toLowerCase();
+
+function home(){
+  leave();
+  const rec=Object.keys(recorded).length;
+  h(`<h1>👑 ${Name}'s Reading Castle 🏰</h1>
+  <div class="bar"><div class="stars">⭐ ${state.stars}</div><div>👑 ${state.comebacks}</div><div>🎀 ${state.stickers}</div></div>
+  <div class="card"><div style="font-size:26px;margin-bottom:12px">Pick a castle door!</div>
+  <div class="grid">${Object.entries(FAMILIES).map(([k,f])=>`<button class="btn ${k===state.family?'gold':''}" data-f="${k}"><span class="big" style="font-size:44px">${f.emoji}</span><br>${f.label} words</button>`).join("")}</div></div>
+  <button class="btn green" id="go" style="font-size:34px">▶ Play</button>
+  <button class="btn violet" id="castle" style="font-size:28px">🏰 My Castle</button>
+  ${M.fallback?`<div class="why" id="mnote">🙉 The listening ear is resting, so a grown-up checks the reading. <b>Grown-up:</b> ${esc(PARENT_TEXT[M.reason]||PARENT_TEXT.other)}</div>
+  <div class="row"><button class="btn small gold" id="retrymic">🎤 Try the mic again</button></div>`:""}
+  ${M.msg?`<div class="small-note" style="text-align:center" id="mmsg" aria-live="polite">${esc(M.msg)}</div>`:""}
+  <div class="row"><button class="btn small" id="test">🔊 Test sound</button><button class="btn small" id="testmic">🎤 Test microphone</button></div>
+  <div class="small-note" id="tstat" style="text-align:center" aria-live="polite"></div>
+  <div class="row"><button class="btn small" id="setup">🔧 Grown-up: record sounds (${rec}/26)</button></div>
+  ${rec<26?`<div class="small-note" style="text-align:center">Tip: record the 26 letter sounds in your own voice for best results. Until then, built-in sounds are used.</div>`:""}`);
+  M.msg="";
+  app.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{state.family=b.dataset.f;save();home()});
+  $("go").onclick=()=>play(state.family);
+  $("castle").onclick=castle;
+  $("setup").onclick=setup;
+  $("test").onclick=testSound;
+  $("testmic").onclick=micTest;
+  if($("retrymic"))$("retrymic").onclick=retryMic;
+}
+function retryMic(){
+  M.fallback=false;M.fails=0;M.reason="";
+  if(!srCtor()){noteFallback("unsupported");M.msg="";}
+  else M.msg="OK! I will try to listen again next time you play.";
+  home();
+}
+async function testSound(){
+  unlock();const ep=stopAll();
+  const say_=m=>{const e=$("tstat");if(e)e.textContent=m};
+  say_("Listening... 🔊");
+  const before=A.started,c=getCtx(),t0=c?c.currentTime:0;
+  const r1=await say("L","S","sss",{ep});
+  if(ep!==A.epoch)return;
+  await wait(150,ep);
+  const r2=await say("P","hello","Hello Julia",{ep});
+  if(ep!==A.epoch)return;
+  const moved=!c||c.currentTime>t0+0.1;
+  if((r1||r2)&&A.started>before&&moved&&(!c||c.state==="running"||A.mode!=="webaudio")){
+    hideBanner();
+    say_("✅ Sound works ("+(A.mode||"?")+"). You should have heard 'sss' and 'Hello Julia'. Heard nothing? Raise the volume and check the silent switch.");
+  }else{
+    showBanner("🔇 I can't make sound yet. Raise the volume, turn off silent mode, then tap here.");
+    say_("❌ Sound did not start. "+(A.lastErr||"")+(c?" (audio "+c.state+")":""));
+  }
+}
+
+// ---------- the reading game ----------
+function play(fam){
+  leave();const rid=roundId;
+  state.roundNo++;save();const roundNo=state.roundNo;
+  if(!srCtor())noteFallback("unsupported");
+  const deck=pickRound(fam).map(w=>({w,rq:false}));
+  let i=0,finished=false;const requeued=new Set();
+  const live=()=>rid===roundId;
+  function show(){
+    if(!live())return;
+    if(i>=deck.length)return done();
+    const item=deck[i],w=item.w,myI=i,isFirst=i===0&&!item.rq;
+    const card={phase:"idle",done:false,misses:0,noHear:0,practice:false,tok:0,micStart:0,armedAt:Date.now()+350,fb:"ask",viaParent:false};
+    const alive=()=>live()&&i===myI&&!finished&&!card.done;
+    h(`<div class="bar"><button class="btn small" id="back" aria-label="Home">🏠</button><div>${i+1} / ${deck.length}</div><div class="stars" id="st">⭐ ${state.stars}</div></div>
+    <div class="progress"><i style="width:${Math.min(100,i/deck.length*100)}%"></i></div>
+    <div id="fx"></div>
+    <div class="card wordcard" id="wc">
+      <div class="hint" id="hint">Touch each letter to hear its sound 👆</div>
+      <div class="letters">${[...w].map((c,k)=>`<div class="L ${VOWELS.includes(c)?'v':'c'}" style="--n:${Math.max(3,w.length)}" data-k="${k}" role="button" aria-label="${c}">${c}</div>`).join("")}</div>
+      <div class="pic" id="pic" aria-hidden="true"></div>
+      <div class="cbpanel hidden" id="cb" role="status"></div>
+    </div>
+    <div class="micwrap" id="micwrap"><button class="mic" id="mic" data-phase="idle" aria-label="Say the word" aria-pressed="false">🎤</button><div class="miclab" id="miclab" aria-live="polite">Say the word!</div></div>
+    <div class="row hidden" id="fb"></div>
+    <div class="why hidden" id="why" role="status"></div>
+    <div class="row hidden" id="extra"><button class="btn small" id="skip">➡️ Next word</button><button class="btn small" id="gu">👪 Grown-up buttons</button></div>`);
+    const L=[...app.querySelectorAll(".L")];
+    const clearLit=()=>L.forEach(e=>e.classList.remove("lit"));
+    const setHint=t=>{const e=$("hint");if(e)e.textContent=t};
+    const showWhy=t=>{const e=$("why");if(e){e.textContent=t;e.classList.toggle("hidden",!t)}};
+    const reveal=()=>{const p=$("pic");if(p){p.textContent=PIC[w]||"";p.classList.add("pop")}};
+    function setPhase(p){
+      card.phase=p;const m=$("mic"),l=$("miclab");if(!m)return;m.dataset.phase=p;
+      m.classList.toggle("listening",p==="listening");m.classList.toggle("thinking",p==="thinking");
+      m.setAttribute("aria-pressed",p==="listening"?"true":"false");
+      m.classList.toggle("nudge",false);
+      if(l)l.textContent=p==="listening"?"Listening... tap to stop 🛑":p==="thinking"?"Hmm...":p==="feedback"?"":"Say the word!";
+    }
+    const nudge=()=>{const m=$("mic");if(m)m.classList.add("nudge")};
+    function refreshMode(){
+      $("micwrap").classList.toggle("hidden",M.fallback);
+      $("fb").classList.toggle("hidden",!M.fallback||card.done);
+      if(M.fallback&&!card.done){
+        showWhy("🙉 My listening ear is resting, so a grown-up checks the reading!  Grown-up: "+(PARENT_TEXT[M.reason]||PARENT_TEXT.other)+" (Home > \"Try the mic again\" when it is fixed.)");
+        renderFB();
+      }
+    }
+    function enterFallback(reason){
+      if(!alive())return;
+      noteFallback(reason);cancelListen();
+      if(card.phase==="listening"||card.phase==="thinking")setPhase("idle");
+      $("extra").classList.add("hidden");
+      setHint("Let's read this one with a grown-up! 👪");
+      refreshMode();
+    }
+    function renderFB(){
+      const fb=$("fb");if(!fb)return;
+      if(card.fb==="ask"){
+        fb.innerHTML=`<button class="btn" id="read">👁 I read it!</button>`;
+        $("read").onclick=()=>{
+          if(!alive()||Date.now()<card.armedAt)return;
+          card.fb="reveal";const ep=stopAll();clearLit();
+          sayWord(w,ep);reveal();setHint("Did you read it right?");
+          fb.innerHTML=`<button class="btn green" id="yes" disabled>⭐ Got it!</button><button class="btn" id="no" disabled>↻ Try later</button>`;
+          later(()=>{const y=$("yes"),n=$("no");if(y)y.disabled=false;if(n)n.disabled=false},700,rid);
+          $("yes").onclick=()=>{if(!alive())return;card.viaParent=true;success("")};
+          $("no").onclick=()=>{
+            if(!alive())return;card.done=true;
+            recordMiss(w,"",Math.min(3,card.misses+1),roundNo,{via:"parent"});
+            if(!requeued.has(w)&&!item.rq){requeued.add(w);deck.push({w,rq:true})} // each word returns at most once
+            i++;show();
+          };
+        };
+      }
+    }
+    // ----- feedback -----
+    function burst(){
+      const fx=$("fx");if(!fx)return;fx.innerHTML="";
+      const E=["👑","👸","✨","⭐","👑","✨","👸","⭐"];
+      for(let k=0;k<16;k++){
+        const s=document.createElement("span");s.textContent=E[k%E.length];
+        const a=Math.random()*Math.PI*2,d=90+Math.random()*130;
+        s.style.setProperty("--dx",Math.round(Math.cos(a)*d)+"px");s.style.setProperty("--dy",Math.round(Math.sin(a)*d-50)+"px");
+        s.style.animationDelay=(Math.random()*.25)+"s";fx.appendChild(s);
+      }
+      later(()=>{const f=$("fx");if(f)f.innerHTML=""},1900,rid);
+    }
+    function success(heard){
+      if(card.done||!alive())return;
+      card.done=true;setPhase("feedback");const ep=stopAll();clearLit();
+      cancelListen();
+      $("extra").classList.add("hidden");$("fb").classList.add("hidden");$("micwrap").classList.toggle("hidden",M.fallback);showWhy("");
+      const r=recordWin(w,heard,Math.min(3,card.misses+1),roundNo,item.rq,card.viaParent?{via:"parent"}:null);
+      $("st").textContent="⭐ "+state.stars;
+      const p=Math.floor(Math.random()*PRAISE.length);
+      burst();reveal();setHint(PRAISE[p]+" ⭐");
+      const room=r.unlocked.find(u=>u.room);
+      if(r.comeback){const cb=$("cb");cb.classList.remove("hidden");cb.classList.add("pop");
+        cb.textContent="👑 Comeback Crown! You read "+w+" after practicing!"+(room?"  "+room.e+" New room: "+room.name+"!":"")}
+      const alive2=()=>live()&&i===myI&&!finished;
+      (async()=>{
+        const minShow=nap(1700,rid);
+        await Promise.race([say("P","praise"+p,PRAISE[p],{ep}),nap(3500,rid)]);
+        if(!alive2())return;
+        if(r.comeback){
+          await Promise.race([sayP("comeback",ep),nap(3000,rid)]);if(!alive2())return;
+          if(room){await Promise.race([sayP("room",ep),nap(3000,rid)]);if(!alive2())return}
+        }
+        await Promise.race([sayWord(w,ep),nap(2500,rid)]);if(!alive2())return;
+        await minShow;if(!alive2())return;
+        await nap(r.comeback?1200:450,rid);if(!alive2())return;
+        i++;show();
+      })();
+    }
+    function practiceDone(heard){
+      if(card.done||!alive())return;
+      card.done=true;setPhase("feedback");const ep=stopAll();clearLit();cancelListen();
+      $("extra").classList.add("hidden");
+      recordPractice(w,heard);
+      if(!requeued.has(w)&&!item.rq){requeued.add(w);deck.push({w,rq:true})} // back once more later; never loops
+      reveal();setHint("Great practice, "+Name+"! 💪 We'll try this one again later.");
+      const alive2=()=>live()&&i===myI&&!finished;
+      (async()=>{
+        const minShow=nap(1700,rid);
+        await Promise.race([sayP("practice",ep),nap(3000,rid)]);if(!alive2())return;
+        await minShow;if(!alive2())return;
+        await nap(400,rid);if(!alive2())return;
+        i++;show();
+      })();
+    }
+    // ----- the ladder -----
+    async function onMiss(heard){
+      card.misses++;const step=card.misses;
+      recordMiss(w,heard,step,roundNo);
+      setPhase("prompt");const ep=stopAll();clearLit();
+      const stale=()=>ep!==A.epoch||!alive();
+      if(step===1){
+        setHint("Hmm, let's try again! Listen to the first sound 👂");
+        await sayP("tryagain",ep);if(stale())return;
+        if(!await wait(150,ep)||stale())return;
+        L[0].classList.add("lit");await sayLetter(w[0],ep);L[0].classList.remove("lit");
+        if(stale())return;
+        setPhase("idle");setHint("Now tap the 🎤 and say the word!");nudge();
+      }else if(step===2){
+        setHint("Let's sound it out together! 👂");
+        await sayP("soundout",ep);if(stale())return;
+        if(!await wait(250,ep)||stale())return;
+        for(let k=0;k<w.length;k++){
+          L[k].classList.add("lit");await sayLetter(w[k],ep);L[k].classList.remove("lit");
+          if(stale())return;
+          if(!await wait(600,ep)||stale())return;
+        }
+        setHint("Now you say it! 🎤");
+        await sayP("nowyou",ep);if(stale())return;
+        setPhase("idle");nudge();
+      }else{
+        card.practice=true;
+        setHint("Listen... 👂");
+        await sayP("listen",ep);if(stale())return;
+        if(!await wait(250,ep)||stale())return;
+        reveal();
+        await sayWord(w,ep);if(stale())return;
+        if(!await wait(350,ep)||stale())return;
+        setHint("Now you say it! 🎤");
+        await sayP("nowyou",ep);if(stale())return;
+        setPhase("idle");nudge();
+      }
+    }
+    function noHear(){
+      card.noHear++;setPhase("idle");
+      setHint("I didn't hear you. Tap the 🎤 and try again!");nudge();
+      sayP("nohear",stopAll());
+      if(card.noHear>=3){$("extra").classList.remove("hidden");showWhy("Grown-up: nothing was heard 3 times. Check the volume/mic, or use Next word / Grown-up buttons.")}
+    }
+    async function onMic(){
+      if(!alive()||Date.now()<card.armedAt||M.fallback)return;
+      if(card.phase==="feedback"||card.phase==="thinking")return;
+      if(card.phase==="listening"){ // tap again = stop now (ignore the accidental double-tap right after starting)
+        if(Date.now()-card.micStart<600)return;
+        setPhase("thinking");stopListening();return;
+      }
+      if(!srCtor()){enterFallback("unsupported");return}
+      stopAll();clearLit();showWhy("");card.touched=true;
+      card.micStart=Date.now();const tok=++card.tok;
+      setPhase("listening");setHint("I'm listening... say the word! 👂");
+      const res=await listen();
+      if(!alive()||tok!==card.tok)return;
+      if(res.t==="cancelled"){if(card.phase==="listening"||card.phase==="thinking")setPhase("idle");return}
+      setPhase("idle");
+      if(res.t==="error"){
+        const e=classifyErr(res.code);
+        if(card.practice){if(e.fatal)noteFallback(e.reason);return practiceDone("")}
+        if(e.fatal)return enterFallback(e.reason);
+        setHint(e.kid);showWhy("Grown-up: "+e.parent);nudge();sayP("nohear",stopAll());return;
+      }
+      M.fails=0;
+      if(res.t==="none"){ if(card.practice)return practiceDone(""); return noHear() }
+      const m=matches(w,res.alts);
+      if(card.practice)return practiceDone(m||res.alts[0]||"");
+      if(m)return success(m);
+      return onMiss(res.alts[0]||"");
+    }
+    // ----- wiring -----
+    L.forEach((el,k)=>{
+      el.oncontextmenu=e=>e.preventDefault();
+      el.onclick=async()=>{
+        if(!alive()||card.phase==="feedback")return;
+        card.touched=true;
+        if(card.phase==="listening"||card.phase==="thinking")cancelListen(); // stop listening cleanly, then play the sound
+        const ep=stopAll();clearLit();setPhase("idle");
+        el.classList.add("lit");
+        await sayLetter(w[k],ep);
+        await wait(60,ep);el.classList.remove("lit");
+      };
+    });
+    $("back").onclick=()=>{if(Date.now()>=card.armedAt)home()};
+    $("mic").onclick=onMic;
+    $("skip").onclick=()=>{if(!alive())return;card.done=true;stopAll();cancelListen();i++;show()};
+    $("gu").onclick=()=>enterFallback("manual");
+    refreshMode();
+    if(isFirst&&!M.fallback)later(()=>{if(alive()&&card.phase==="idle"&&!card.touched&&A.active.size===0)sayP("say",A.epoch)},500,rid); // gentle one-time prompt; never cuts off a letter she tapped
+  }
+  function done(){
+    if(finished||!live())return;finished=true;
+    state.stickers++;const un=checkUnlocks();save();
+    const room=un.find(u=>u.room);
+    h(`<div class="card" style="padding:40px 16px"><div class="big pop">👑</div>
+    <h1>Well done, Princess ${Name}!</h1>
+    <div style="font-size:30px;margin:14px">You earned a sticker 🎀</div>
+    ${un.length?`<div class="cbpanel pop" id="newstuff">${un.map(u=>`${u.e} ${esc(u.name)}`).join(" &nbsp; ")}</div>`:""}
+    <div class="row" style="margin-top:14px"><button class="btn green" id="again">Again</button><button class="btn violet" id="mc">🏰 My Castle</button><button class="btn" id="home">🏠 Home</button></div></div>`);
+    const ep=stopAll();
+    (async()=>{await say("P","done",DONE_TEXT,{ep});if(room&&live()&&ep===A.epoch)await sayP("room",ep)})();
+    $("again").onclick=()=>play(fam);
+    $("mc").onclick=castle;
+    $("home").onclick=home;
+  }
+  show();
+}
+
+// ---------- My Castle (progress) ----------
+function castle(){
+  leave();const rid=roundId;
+  const groups=[...Object.values(FAMILIES).map(f=>({label:f.label+" words",emoji:f.emoji,words:f.words})),{label:"My name",emoji:"👑",words:[NAME]}];
+  const tile=w=>{
+    const b=state.words[w];
+    if(!b||!b.wins)return `<div class="tile lock"><div class="e">${PIC[w]||"❓"}</div>${esc(w)}</div>`;
+    return `<div class="tile got"><div class="e">${PIC[w]||"⭐"}</div>${esc(w)}<div class="tilestar">${"⭐".repeat(Math.min(3,b.wins))}${b.wins>=3?"👑":""}</div></div>`;
+  };
+  const practicing=[...ALL_WORDS,NAME].filter(w=>state.words[w]&&state.words[w].owes);
+  const wonWords=[...ALL_WORDS,NAME].filter(w=>state.words[w]&&state.words[w].wins).length;
+  const earnedN=CATALOG.filter(c=>state.earned[c.id]).length;
+  h(`<div class="bar"><button class="btn small" id="back" aria-label="Home">🏠</button><h2>🏰 My Castle</h2><span></span></div>
+  <div class="card"><div class="bar" style="justify-content:space-around;flex-wrap:wrap"><div>⭐ ${state.stars}</div><div>👑 ${state.comebacks}</div><div>🎀 ${state.stickers}</div><div>🔥 ${state.best}</div></div>
+  <div class="small-note" style="margin-top:6px">stars · comeback crowns · stickers · best streak</div>
+  ${wonWords?"":`<div style="font-size:22px;margin-top:10px">Read some words to fill your castle! ✨</div>`}</div>
+  <div class="card"><h2>My Stickers &amp; Rooms</h2>
+  <div class="small-note" style="margin:6px 0 10px">${earnedN} of ${CATALOG.length} found. Read more words to unlock the rest!</div>
+  <div class="tiles stk" id="stk">${CATALOG.map(c=>state.earned[c.id]
+    ?`<div class="sticker"><div class="e">${c.e}</div><b>${esc(c.name)}</b></div>`
+    :`<div class="sticker lock"><div class="e">${c.e}</div><b>???</b><div>${esc(c.need)}</div></div>`).join("")}</div>
+  ${state.crowns.length?`<div style="margin-top:12px;font-size:20px">My comeback crowns: ${state.crowns.slice(-12).map(c=>"👑 "+esc(c.w)).join(" &nbsp;")}</div>`:""}</div>
+  <div class="card"><h2>Words we're practicing 🌱</h2>
+  ${practicing.length?`<div class="small-note" style="margin:6px 0 10px">Everybody practices! Read these right the first time to win a comeback crown 👑</div>
+  <div class="tiles" id="prac">${practicing.map(w=>`<div class="tile grow"><div class="e">${PIC[w]||"🌱"}</div>${esc(w)}<div>🌱</div></div>`).join("")}</div>`
+  :`<div style="font-size:20px;margin-top:8px">${wonWords?"Nothing to practice right now. Wow! 🌟":"Play a round and we will see! 🌱"}</div>`}</div>
+  <div class="card"><h2>My Words (${wonWords} read)</h2>
+  ${groups.map(g=>`<div style="font-size:22px;margin:12px 0 6px">${g.emoji} ${esc(g.label)}</div><div class="tiles">${g.words.map(tile).join("")}</div>`).join("")}</div>
+  <div class="card" id="gcard"><button class="btn small holdbtn" id="hold" aria-label="Grown-ups: press and hold for 2 seconds"><i></i>👪 Grown-ups</button>
+  <div class="small-note" style="margin-top:6px">Grown-ups: press and hold for 2 seconds.</div><div id="gpanel"></div></div>`);
+  $("back").onclick=home;
+  const hb=$("hold");let ht=null;
+  const stop=()=>{if(ht){clearTimeout(ht);timers.delete(ht);ht=null}hb.classList.remove("holding")};
+  hb.oncontextmenu=e=>e.preventDefault();
+  hb.onpointerdown=()=>{stop();hb.classList.add("holding");ht=later(()=>{ht=null;hb.classList.remove("holding");grown(rid)},2000,rid)};
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>hb.addEventListener(ev,stop));
+}
+function grown(rid){
+  const panel=$("gpanel");if(!panel||rid!==roundId)return;
+  const rows=Object.keys(state.words).map(w=>[w,state.words[w]]).filter(([,b])=>b.tries>0).sort((a,b)=>b[1].miss-a[1].miss||a[0].localeCompare(b[0]));
+  const arrow={up:"↑ better",down:"↓",same:"→","-":"-"};
+  panel.innerHTML=`<div style="margin-top:12px;text-align:left"><h2 style="font-size:20px">Grown-up report</h2>
+  <div class="small-note" style="margin:4px 0 8px">${state.attempts.length} tries logged (last ${MAXLOG} kept). "Heard" is the best guess the recognizer made on the last miss. Trend compares the latest tries with earlier ones.</div>
+  ${rows.length?`<table class="gt"><thead><tr><th style="width:17%">Word</th><th style="width:11%">Tries</th><th style="width:11%">Wins</th><th style="width:13%">1st try</th><th style="width:27%">Heard (miss)</th><th style="width:21%">Trend</th></tr></thead><tbody>${rows.map(([w,b])=>`<tr><td><b>${esc(w)}</b></td><td>${b.tries}</td><td>${b.wins}</td><td>${b.first}</td><td>${b.miss&&b.heard?esc(b.heard):"-"}</td><td>${arrow[trendOf(w)]}</td></tr>`).join("")}</tbody></table>`:`<div>No tries yet.</div>`}
+  <div class="row" style="margin-top:14px"><button class="btn small" id="reset">Reset progress</button></div>
+  <div class="small-note" id="rnote" style="text-align:center;min-height:18px" aria-live="polite">Your recorded letter sounds are not touched.</div></div>`;
+  const rb=$("reset");let armed=false,at=null;
+  rb.onclick=()=>{
+    if(rid!==roundId)return;
+    if(!armed){armed=true;rb.textContent="Tap again to erase everything";rb.classList.add("gold");
+      at=later(()=>{armed=false;rb.textContent="Reset progress";rb.classList.remove("gold")},4000,rid);return}
+    clearTimeout(at);
+    const fam=state.family;state=cleanState(null);state.family=fam;save();
+    castle();const n=$("gcard");if(n){const d=document.createElement("div");d.className="small-note";d.textContent="Progress was reset.";n.appendChild(d)}
+  };
+}
+
+// ---------- grown-up microphone check ----------
+function micTest(){
+  leave();const rid=roundId;
+  h(`<div class="bar"><button class="btn small" id="back">🏠 Back</button><h2 style="font-size:22px">Microphone check</h2><span></span></div>
+  <div class="card"><div class="small-note" style="text-align:left">Grown-up: tap the mic and say a word, e.g. "sun". This shows what the recognizer heard (best guess first). Chrome needs the internet for this.
+  <br>Speech recognition available: <b>${srCtor()?"yes":"NO"}</b> · secure page (https): <b>${window.isSecureContext?"yes":"NO"}</b></div>
+  <div class="micwrap" style="margin-top:14px"><button class="mic" id="mic" aria-pressed="false" aria-label="Test the microphone">🎤</button><div class="miclab" id="miclab" aria-live="polite">Tap and say a word</div></div>
+  <div id="mout" style="margin-top:12px;font-size:20px;overflow-wrap:anywhere" aria-live="polite"></div></div>`);
+  $("back").onclick=home;
+  let busy=false,tok=0;
+  const lab=t=>{const e=$("miclab");if(e)e.textContent=t};
+  $("mic").onclick=async()=>{
+    if(rid!==roundId)return;
+    if(busy){ if(LIS&&!LIS.stopping){lab("Hmm...");stopListening()} return }
+    if(!srCtor()){$("mout").textContent="This browser has no speech recognition. Use Chrome on Android.";return}
+    busy=true;const my=++tok;stopAll();
+    $("mic").classList.add("listening");$("mic").setAttribute("aria-pressed","true");lab("Listening... tap to stop 🛑");$("mout").textContent="";
+    const res=await listen();
+    if(rid!==roundId||my!==tok)return;
+    busy=false;$("mic").classList.remove("listening");$("mic").setAttribute("aria-pressed","false");lab("Tap and say a word");
+    const out=$("mout");
+    if(res.t==="cancelled")return;
+    if(res.t==="result"){
+      M.fails=0;
+      out.innerHTML="Heard:<br>"+res.alts.map((a,k)=>`${k+1}. “${esc(a)}”${k===0?" (best)":""}`).join("<br>")+`<div class="small-note" style="margin-top:8px">The microphone and recognizer work${M.fallback?'. Go Home and press "Try the mic again" to use it in the game.':"."}</div>`;
+    }else if(res.t==="none"){
+      out.textContent="Nothing heard"+(res.invalid?" (the recognizer was busy; tap again)":"")+". Speak a little louder or closer, then tap again.";
+    }else{
+      const i=errInfo(res.code);
+      out.innerHTML=`Error: <b>${esc(res.code)}</b><div class="small-note" style="margin-top:6px">${esc(PARENT_TEXT[i.reason]||PARENT_TEXT.other)}</div>`;
+    }
+  };
+}
+
+// ---------- grown-up recorder ----------
+const EX={A:"apple",B:"bat",C:"cat (k)",D:"dog",E:"egg",F:"fan",G:"go",H:"hat",I:"igloo",J:"jam",K:"kite",L:"leg",M:"man",N:"net",O:"octopus",P:"pig",Q:"queen",R:"run",S:"sun",T:"top",U:"umbrella",V:"van",W:"web",X:"fox",Y:"yes",Z:"zip"};
+let R=null; // active recording {mr,stream,L,timer}
+function cancelRec(){
+  const r=R;R=null;if(!r)return;
+  clearTimeout(r.timer);
+  try{if(r.mr){r.mr.ondataavailable=null;r.mr.onstop=null;if(r.mr.state!=="inactive")r.mr.stop()}}catch{}
+  try{r.stream&&r.stream.getTracks().forEach(t=>t.stop())}catch{}
+}
+function setup(){
+  leave();
+  const gen=roundId;
+  h(`<div class="bar"><button class="btn small" id="back">🏠 Back</button><h2 style="margin:0;font-size:22px">Record letter sounds</h2><span></span></div>
+  <div class="card"><div class="small-note">Tap a letter, then say the <b>sound</b> (not the name), short and clean. Recording stops by itself after 3 seconds, or tap again. If the mic is blocked, your phone's voice recorder opens instead. Green = recorded; tap to hear it. Stored only on this device.</div>
+  <div class="row" style="margin-top:10px"><button class="btn small ${rerec?'gold':''}" id="rr">↻ Re-record mode: ${rerec?'ON':'off'}</button></div>
+  <div class="small-note" id="note" style="margin-top:8px;min-height:18px" aria-live="polite"></div></div>
+  <div class="rec">${ALPHA.map(L=>`<button class="btn ${recorded[L]?'has':''}" data-l="${L}">${L}<br><span style="font-size:12px">${EX[L]}</span></button>`).join("")}</div>
+  <input type="file" id="pick" accept="audio/*" capture class="hidden">`);
+  const note=m=>{const e=document.getElementById("note");if(e)e.textContent=m};
+  document.getElementById("back").onclick=home;
+  document.getElementById("rr").onclick=()=>{rerec=!rerec;setup()};
+  const pick=document.getElementById("pick");
+  let cur=null,busy=false;
+  const keep=async(L,blob)=>{
+    A.cache.delete(recorded[L]);recorded[L]=blob;A.cache.delete(blob);await dbPut(L,blob);
+    if(gen!==roundId)return; // user left the screen meanwhile; the sound is still saved
+    setup();say("L",L,TTS_FALLBACK[L],{ep:stopAll()});
+  };
+  pick.onchange=()=>{const f=pick.files&&pick.files[0];const L=cur;cur=null;if(f&&L){if(f.size>4e6)return note("That file is too long. Record just the short sound.");keep(L,f)}};
+  app.querySelectorAll("[data-l]").forEach(b=>b.onclick=async()=>{
+    const L=b.dataset.l;
+    if(R&&R.L===L){if(R.mr&&R.mr.state==="recording")R.mr.stop();return}
+    if(R||busy)return;
+    if(recorded[L]&&!rerec){say("L",L,TTS_FALLBACK[L],{ep:stopAll()});return}
+    cur=L;
+    let s;
+    busy=true;
+    try{
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==="undefined")throw new Error("no mic api");
+      s=await navigator.mediaDevices.getUserMedia({audio:true});
+    }catch{
+      busy=false;note("Mic not available here. Opening your phone's voice recorder...");pick.value="";pick.click();return;
+    }
+    busy=false;
+    if(gen!==roundId){s.getTracks().forEach(t=>t.stop());return} // left the screen while permission was pending
+    try{
+      const mr=new MediaRecorder(s),chunks=[];
+      const me={mr,stream:s,L,timer:0};R=me;
+      mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+      mr.onstop=()=>{
+        clearTimeout(me.timer);s.getTracks().forEach(t=>t.stop());
+        if(R!==me)return;R=null;
+        const blob=new Blob(chunks,{type:mr.mimeType||"audio/webm"});
+        if(!blob.size){note("Nothing was recorded. Try again.");setup();return}
+        keep(L,blob);
+      };
+      mr.start();
+      me.timer=setTimeout(()=>{try{if(mr.state==="recording")mr.stop()}catch{}},3000);
+      b.classList.add("live");b.innerHTML=L+"<br>● stop";
+    }catch{
+      s.getTracks().forEach(t=>t.stop());R=null;
+      note("Recording failed. Opening your phone's voice recorder...");pick.value="";pick.click();
+    }
+  });
+}
+
+
+window.addEventListener("unhandledrejection",e=>{A.lastErr="unhandled: "+(e.reason&&e.reason.message||e.reason)});
+home();
+(async()=>{
+  await openDB();
+  for(const L of ALPHA){const b=await dbGet(L);if(b instanceof Blob)recorded[L]=b}
+  if(Object.keys(recorded).length&&$("setup")&&$("test"))home(); // refresh the (n/26) count if still on the home screen
+})();
+window.__A=A;
+window.__dbg={get state(){return state},M,get LIS(){return LIS},get roundId(){return roundId},matches,norm,cleanState,CATALOG};
+</script>
+</body>
+</html>
