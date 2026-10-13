@@ -62,8 +62,10 @@ phr={'praise0':'Great reading, Julia!','praise1':'You did it, Princess!','praise
  # v2 (microphone game)
  'say':'Say the word!','nohear':"I didn't hear you. Tap and try again!",'tryagain':"Hmm, let's try again!",
  'soundout':"Let's sound it out together.",'nowyou':'Now you say it!','listen':'Listen.',
+ 'sread':'Read the sentence!','all':'Now read it all together!','sentpraise':'Great sentence reading, Julia!','star':'You earned a Sentence Star!','puzzle':'A puzzle word! Can you say it?',
  'practice':'Great practice, Julia!','comeback':'You got a comeback crown!','room':'A new room in your castle!'}
 jobs={'W'+w:w.lower() for w in words};jobs['WJULIA']='Julia'
+for w in ['I','A','IS','THE','SEE']: jobs['W'+w]=w.lower() if w!='I' else 'I'   # puzzle (sight) words
 for k,v in phr.items(): jobs['P'+k]=v
 for k,t in jobs.items():
     a,sr=espeak(t,125,60);a,sr=lead(a,sr)

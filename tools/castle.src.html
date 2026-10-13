@@ -80,6 +80,26 @@ h2{margin:0;font-size:24px;color:var(--deep);overflow-wrap:anywhere}
 table.gt{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}
 table.gt th,table.gt td{border-bottom:1px solid #eadcf0;padding:4px 2px;overflow-wrap:anywhere;text-align:center;vertical-align:top}
 table.gt th{font-size:12px;color:var(--deep)}
+.vcard{background:#fff7fc;border:4px solid #f3c6e3;border-radius:22px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:8px}
+.vcard.sel{border-color:var(--gold);background:linear-gradient(#fff7d6,#ffe9a8)}
+.vtitle{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:30px;font-weight:700;color:var(--deep)}
+.vbadge{font-size:16px;background:var(--gold);color:var(--ink);border-radius:12px;padding:4px 10px;visibility:hidden}
+.vcard.sel .vbadge{visibility:visible}
+.vbtns,.seg{display:flex;gap:10px}
+.vbtns .btn,.seg .btn{flex:1 1 0;min-width:0;padding:10px 8px}
+.seg .btn[aria-pressed=true]{background:var(--gold);color:var(--ink);box-shadow:0 5px 0 #c99500}
+.SW{font:inherit;border:0;background:#fff;border-radius:18px;padding:8px 14px;min-height:64px;min-width:56px;font-size:clamp(30px,10vw,52px);font-weight:700;color:var(--cons);box-shadow:0 5px 0 #c9b6e8;cursor:pointer;touch-action:manipulation;-webkit-user-select:none}
+.SW.puz{color:var(--violet);border:3px dashed #b794f6}
+.SW.lit{transform:scale(1.1);outline:6px solid var(--gold)}
+.SW.got{background:#d9f9e6;box-shadow:0 0 0 4px #2fbf71,0 0 18px #2fbf71}
+.SW.nyet{background:#ffe9cc;box-shadow:0 0 0 4px #ffb347}
+.SW .dot{color:var(--ink)}
+.sent{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 12px;padding:8px 0}
+.L.s{background:var(--violet)}
+.slist{display:flex;flex-direction:column;gap:8px}
+.stile{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fff7fc;border:3px solid #f3c6e3;border-radius:18px;padding:10px 12px;min-height:56px;font-weight:700;text-align:left;overflow-wrap:anywhere}
+.stile .e{font-size:30px}.stile .t{font-size:20px;flex:1 1 140px}
+.stile.lock{background:#efe9f5;border-color:#d8cfe3;color:#8a7d99}.stile.lock .e{opacity:.5}
 .holdbtn{position:relative;overflow:hidden}
 .holdbtn i{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(124,58,237,.35);pointer-events:none}
 .holdbtn.holding i{width:100%;transition:width 2s linear}
@@ -105,6 +125,15 @@ const FAMILIES = {
 };
 const PIC = {RAM:"🐏",CAT:"🐱",HAT:"🎩",MAP:"🗺️",PAN:"🍳",BAG:"👜",PIG:"🐷",PIN:"📌",LIP:"👄",HOT:"🔥",DOG:"🐶",POT:"🍲",MOP:"🧹",BOX:"📦",FOX:"🦊",SUN:"🌞",BUS:"🚌",CUP:"☕",BUG:"🐛",NUT:"🥜",RED:"🔴",PEN:"🖊️",HEN:"🐔",NET:"🥅",BED:"🛏️",LEG:"🦵",JET:"✈️",KID:"🧒",DAD:"👨",ZIP:"🤐",SAT:"🪑",SIT:"🪑",SAM:"👦",TOM:"👦",CAN:"🥫",MAD:"😠",MAT:"🧶",BIG:"🐘",DIG:"⛏️",HIT:"🔨",TOP:"🔝",MUD:"🟤",RUN:"🏃",FUN:"🎉",WET:"💧",HOP:"🐇",JUG:"🏺",TEN:"🔟",JULIA:"👑"};
 const ALL_WORDS = [...new Set(Object.values(FAMILIES).flatMap(f=>f.words))];
+// "puzzle words": not sounded out, just learned by sight (taught as flash words before the sentences)
+const SIGHT = ["I","A","IS","THE","SEE"];
+const SIGHT_SET = new Set(SIGHT);
+// Accepted spoken forms for puzzle words. Lenient on purpose: they are recorded but never cause a ladder step on their own.
+const SIGHT_ALIAS = {I:["i","eye","ay","1"],A:["a","uh","ay","eh","8"],IS:["is","its"],THE:["the","thee","da","a"],SEE:["see","sea","c"]};
+// sentences (tools/sentences.json -> build.py): {id,text,emoji,level}; words = the distinct words of the sentence
+const SENTENCES = (__SENTENCES__).map(x=>({id:String(x.id),text:String(x.text),emoji:String(x.emoji),level:+x.level,
+  words:String(x.text).match(/[A-Z]+/g)||[]})).filter(x=>x.words.length>=2);
+const SENT_BY_ID = Object.create(null);SENTENCES.forEach(x=>{SENT_BY_ID[x.id]=x});
 const VOWELS = "AEIOU";
 const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 // last-resort robot-voice approximations (only if the built-in clips cannot play at all)
@@ -115,7 +144,9 @@ const DONE_TEXT = "Well done, Princess Julia! You earned a sticker!";
 const PHRASE = { // Pxxx clips and the robot-voice text used only if a clip cannot play
   say:"Say the word!", nohear:"I didn't hear you. Tap and try again!", tryagain:"Hmm, let's try again!",
   soundout:"Let's sound it out together.", nowyou:"Now you say it!", listen:"Listen.",
-  practice:"Great practice, Julia!", comeback:"You got a comeback crown!", room:"A new room in your castle!"
+  practice:"Great practice, Julia!", comeback:"You got a comeback crown!", room:"A new room in your castle!",
+  sread:"Read the sentence!", all:"Now read it all together!", sentpraise:"Great sentence reading, Julia!",
+  star:"You earned a Sentence Star!", puzzle:"A puzzle word! Can you say it?"
 };
 // Spoken-answer aliases. A recognizer may return digits for a spoken number word, so TEN also accepts "10".
 // Deliberately NOTHING else (no near-homophones, no one-letter slips: "sit" for SAT is a miss by design).
@@ -135,8 +166,14 @@ const CATALOG = [
   {id:"st150",e:"🪄",name:"Royal Wand",     need:"Collect 150 stars",  ok:s=>s.stars>=150},
   {id:"cb25",e:"🦄",name:"Unicorn Stable",  need:"Win 25 comebacks",   ok:s=>s.comebacks>=25, room:true}
 ];
-// built-in clips (base64 mp3, generated offline): L<letter> = letter sound, W<WORD> = word, P<name> = phrase
-const CLIPS = __CLIPS__;
+// built-in clips (base64 mp3, generated offline): L<letter> = letter sound, W<WORD> = word, P<name> = phrase, S<name> = sentence.
+// BUNDLE.voices = Kokoro neural voice packs {voiceId:{clipId:base64}}, BUNDLE.classic = the old espeak clips (letter
+// style "Classic" and the last-resort fallback), BUNDLE.meta = [{id,name,blurb}] in picker order.
+const BUNDLE = __CLIPS__;
+const VOICES = BUNDLE.meta.filter(v=>BUNDLE.voices[v.id]);
+const VOICE_IDS = VOICES.map(v=>v.id);
+const DEFAULT_VOICE = VOICE_IDS.includes("af_heart") ? "af_heart" : VOICE_IDS[0];
+const CLASSIC = BUNDLE.classic;
 
 // ---------- storage ----------
 // Every localStorage access is wrapped: private windows / blocked storage just mean "nothing is remembered".
@@ -145,13 +182,27 @@ const LS = {
   get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch{return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch{return false}}
 };
-const WORD_RE = /^[A-Z]{2,6}$/;           // also keeps "__proto__" / "constructor" out of the maps
+// voice settings: which Kokoro voice, and whether letter sounds come from that voice or from the "Classic" espeak set
+const PREF_KEY = "jrg-voice";
+function cleanPrefs(p){
+  const o = {voice:DEFAULT_VOICE, letters:"voice"};
+  if(p && typeof p === "object" && !Array.isArray(p)){
+    if(typeof p.voice === "string" && VOICE_IDS.includes(p.voice)) o.voice = p.voice;
+    if(p.letters === "classic") o.letters = "classic";
+  }
+  return o;
+}
+let prefs = cleanPrefs(LS.get(PREF_KEY,null));
+const savePrefs = () => LS.set(PREF_KEY,prefs);
+const voiceName = id => (VOICES.find(v=>v.id===id)||{name:id}).name;
+const WORD_RE = /^[A-Z]{1,6}$/;           // also keeps "__proto__" / "constructor" out of the maps
 const CAT_IDS = new Set(CATALOG.map(c=>c.id));
 const nz = x => Number.isFinite(+x) && +x > 0 ? Math.min(Math.floor(+x), 1e9) : 0;
 const str = (x,n) => typeof x === "string" ? x.slice(0,n) : "";
 function freshWord(){return {tries:0,wins:0,miss:0,first:0,streak:0,owes:false,missRound:0}}
+function freshSent(){return {tries:0,wins:0,miss:0,first:0,owes:false,missRound:0,missed:Object.create(null)}}
 function cleanState(s){
-  const o = {stars:0,stickers:0,comebacks:0,streak:0,best:0,roundNo:0,family:"a",words:Object.create(null),attempts:[],earned:Object.create(null),crowns:[]};
+  const o = {stars:0,stickers:0,comebacks:0,streak:0,best:0,roundNo:0,family:"a",words:Object.create(null),attempts:[],earned:Object.create(null),crowns:[],sents:Object.create(null),sentStars:[]};
   if(!s || typeof s !== "object" || Array.isArray(s)) return o;
   o.stars=nz(s.stars); o.stickers=nz(s.stickers); o.comebacks=nz(s.comebacks);
   o.streak=nz(s.streak); o.best=nz(s.best); o.roundNo=nz(s.roundNo);
@@ -161,27 +212,45 @@ function cleanState(s){
       if(!WORD_RE.test(k)) continue;
       const b=s.words[k]; if(!b || typeof b!=="object") continue;
       o.words[k]={tries:nz(b.tries),wins:nz(b.wins),miss:nz(b.miss),first:nz(b.first),streak:nz(b.streak),owes:b.owes===true,missRound:nz(b.missRound),heard:str(b.heard,60)};
+      if(SIGHT_SET.has(k))o.words[k].sight=true;
     }
   }
+  if(s.sents && typeof s.sents==="object" && !Array.isArray(s.sents)){
+    for(const k of Object.keys(s.sents).slice(0,200)){
+      if(!SENT_BY_ID[k])continue;
+      const b=s.sents[k]; if(!b || typeof b!=="object")continue;
+      const m=Object.create(null);
+      if(b.missed && typeof b.missed==="object" && !Array.isArray(b.missed)) for(const w of Object.keys(b.missed).slice(0,8)) if(WORD_RE.test(w)&&nz(b.missed[w])) m[w]=Math.min(999,nz(b.missed[w]));
+      o.sents[k]={tries:nz(b.tries),wins:nz(b.wins),miss:nz(b.miss),first:nz(b.first),owes:b.owes===true,missRound:nz(b.missRound),missed:m};
+    }
+  }
+  if(Array.isArray(s.sentStars)) for(const k of s.sentStars.slice(0,200)) if(typeof k==="string" && SENT_BY_ID[k] && !o.sentStars.includes(k)) o.sentStars.push(k);
   if(Array.isArray(s.attempts)){
     for(const a of s.attempts.slice(-2000)){
+      if(a && typeof a==="object" && typeof a.sent==="string"){   // a sentence attempt (per-word results in res: 1 got, 0 missed, 2 puzzle word not heard)
+        if(!SENT_BY_ID[a.sent])continue;
+        const e={sent:a.sent,heard:str(a.heard,100),ok:a.ok===true,step:Math.min(3,Math.max(1,nz(a.step)||1)),ts:Number.isFinite(+a.ts)?+a.ts:0,res:typeof a.res==="string"&&/^[012]{1,8}$/.test(a.res)?a.res:""};
+        if(a.practice===true)e.practice=true; if(a.via==="parent")e.via="parent";
+        o.attempts.push(e);continue;
+      }
       if(!a || typeof a!=="object" || typeof a.word!=="string" || !WORD_RE.test(a.word)) continue;
       const e={word:a.word,heard:str(a.heard,60),ok:a.ok===true,step:Math.min(3,Math.max(1,nz(a.step)||1)),ts:Number.isFinite(+a.ts)?+a.ts:0};
       if(a.practice===true)e.practice=true; if(a.via==="parent")e.via="parent";
+      if(a.sight===true&&SIGHT_SET.has(a.word))e.sight=true;
       o.attempts.push(e);
     }
     if(o.attempts.length>MAXLOG) o.attempts=o.attempts.slice(-MAXLOG);
   }
   if(s.earned && typeof s.earned==="object" && !Array.isArray(s.earned)) for(const k of Object.keys(s.earned)) if(CAT_IDS.has(k)) o.earned[k]=Number.isFinite(+s.earned[k])?+s.earned[k]:1;
-  if(Array.isArray(s.crowns)) for(const c of s.crowns.slice(-200)) if(c && typeof c.w==="string" && WORD_RE.test(c.w)) o.crowns.push({w:c.w,ts:Number.isFinite(+c.ts)?+c.ts:0});
+  if(Array.isArray(s.crowns)) for(const c of s.crowns.slice(-200)) if(c && typeof c.w==="string" && WORD_RE.test(c.w)){const e={w:c.w,ts:Number.isFinite(+c.ts)?+c.ts:0};if(typeof c.s==="string"&&SENT_BY_ID[c.s])e.s=c.s;o.crowns.push(e)}
   return o;
 }
 let state = cleanState(LS.get(KEY,null));
 const save = () => LS.set(KEY,state);
 const esc = x => String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function wstat(w){return state.words[w]||(state.words[w]=freshWord())}
+function wstat(w){return state.words[w]||(state.words[w]=Object.assign(freshWord(),SIGHT_SET.has(w)?{sight:true}:{}))}
 function logAttempt(word,heard,ok,step,extra){
-  state.attempts.push(Object.assign({word,heard:str(heard,60),ok:!!ok,step,ts:Date.now()},extra||{}));
+  state.attempts.push(Object.assign({word,heard:str(heard,60),ok:!!ok,step,ts:Date.now()},SIGHT_SET.has(word)?{sight:true}:{},extra||{}));
   if(state.attempts.length>MAXLOG) state.attempts.splice(0,state.attempts.length-MAXLOG);
 }
 // graded attempt results; practice repeats never count as tries / wins / misses
@@ -207,6 +276,43 @@ function recordWin(word,heard,step,roundNo,isRequeue,extra){
   return {comeback,unlocked};
 }
 function recordPractice(word,heard){logAttempt(word,heard,false,3,{practice:true});save()}
+// ----- sentences: same log, same comeback idea. Word stats (state.words) are NOT touched by sentence reading. -----
+const sstat = id => state.sents[id]||(state.sents[id]=freshSent());
+function logSent(id,heard,ok,step,res,extra){
+  state.attempts.push(Object.assign({sent:id,heard:str(heard,100),ok:!!ok,step,ts:Date.now(),res:res||""},extra||{}));
+  if(state.attempts.length>MAXLOG) state.attempts.splice(0,state.attempts.length-MAXLOG);
+}
+function recordSentMiss(id,heard,step,roundNo,res,missedWords,extra){
+  const b=sstat(id); b.tries++; b.miss++; b.owes=true; b.missRound=roundNo; state.streak=0;
+  for(const w of missedWords||[]){ if(b.missed[w]||Object.keys(b.missed).length<8) b.missed[w]=Math.min(999,(b.missed[w]||0)+1) }
+  logSent(id,heard,false,step,res,extra); save();
+}
+// returns {comeback,star,unlocked}
+function recordSentWin(id,heard,step,roundNo,isRequeue,res,extra){
+  const b=sstat(id); b.tries++; b.wins++;
+  const firstTry = step===1 && !isRequeue;
+  if(firstTry) b.first++;
+  state.stars++; state.streak++; if(state.streak>state.best) state.best=state.streak;
+  let star=false, comeback=false;
+  if(firstTry && !state.sentStars.includes(id)){ state.sentStars.push(id); star=true }
+  if(firstTry && b.owes && b.missRound<roundNo){
+    comeback=true; b.owes=false; state.comebacks++;
+    state.crowns.push({w:"SENT",s:id,ts:Date.now()}); if(state.crowns.length>200) state.crowns.splice(0,state.crowns.length-200);
+  }
+  logSent(id,heard,true,step,res,extra);
+  const unlocked=checkUnlocks(); save();
+  return {comeback,star,unlocked};
+}
+function recordSentPractice(id,heard,res){logSent(id,heard,false,3,res,{practice:true});save()}
+// a sentence is playable once every word in it (reading words AND puzzle words) has been read right at least once
+const wonWord = w => !!(state.words[w] && state.words[w].wins>=1);
+const missingWords = s => s.words.filter(w=>!wonWord(w));
+const sentUnlocked = s => missingWords(s).length===0;
+function pickSentences(){ // up to 5 unlocked: missed-earlier first (latest miss first), then never read, easiest first, least read
+  const key=s=>{const b=state.sents[s.id]||{};return [b.owes?0:1,b.owes?-nz(b.missRound):0,nz(b.wins)>0?1:0,s.level,nz(b.wins)]};
+  const cmp=(a,b)=>{const x=key(a),y=key(b);for(let i=0;i<x.length;i++)if(x[i]!==y[i])return x[i]-y[i];return a.id<b.id?-1:1};
+  return SENTENCES.filter(sentUnlocked).sort(cmp).slice(0,5);
+}
 function checkUnlocks(){
   const out=[];
   for(const c of CATALOG) if(!state.earned[c.id] && c.ok(state)){state.earned[c.id]=Date.now();out.push(c)}
@@ -231,8 +337,8 @@ const recorded={};
 let LIS=null; // active speech-recognition session (see "listening" below)
 
 // ---------- audio ----------
-// Order of preference for every sound: 1) grown-up recording (letters only)  2) built-in clip via Web Audio
-// 3) built-in clip via <audio>  4) speechSynthesis (robot voice, last resort).
+// Order of preference for every sound: 1) grown-up recording (letters only)  2) the chosen voice's clip (Kokoro) via Web Audio,
+// then <audio>; 3) the same for the next source (Classic espeak clip / the other voices; see sources())  4) speechSynthesis (last resort).
 const A={ctx:null,epoch:0,active:new Set(),cache:new Map(),started:0,ended:0,lastErr:"",mode:"",unlockedAt:0};
 function b64ToBuf(s){const bin=atob(s),n=bin.length,u=new Uint8Array(n);for(let i=0;i<n;i++)u[i]=bin.charCodeAt(i);return u.buffer}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -267,7 +373,7 @@ document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="hidden"){stopAll();cancelListen();return}
   if(A.ctx&&A.ctx.state!=="running"){try{A.ctx.resume().catch(()=>{})}catch{}}
 });
-document.getElementById("ab").onclick=()=>{unlock();A.badDecode=false;hideBanner();setTimeout(checkCtx,800);say("W","SUN","sun")};
+document.getElementById("ab").onclick=()=>{unlock();A.badDecode=false;hideBanner();setTimeout(checkCtx,800);say("W","SUN","sun");if(A.unlockedAt)preload()};
 
 function decode(ab){return new Promise((res,rej)=>{try{const p=A.ctx.decodeAudioData(ab,res,rej);if(p&&p.catch)p.catch(rej)}catch(e){rej(e)}})}
 function trim(buf){ // skip silence at both ends (mp3 encoder padding, recording lead-in)
@@ -278,21 +384,43 @@ function trim(buf){ // skip silence at both ends (mp3 encoder padding, recording
   if(e-s<buf.sampleRate*0.02){s=0;e=buf.length}
   return {buf,off:s/buf.sampleRate,dur:(e-s)/buf.sampleRate};
 }
-function getBuf(key,blob){ // -> Promise<{buf,off,dur}|null>
+// clip keys are "<pack>/<id>", e.g. "af_heart/Wsun" or "classic/LS"; rawClip -> base64 string or null
+function rawClip(ck){
+  const i=ck.indexOf("/");if(i<0)return null;
+  const pk=ck.slice(0,i),id=ck.slice(i+1);
+  const pack=pk==="classic"?CLASSIC:(VOICE_IDS.includes(pk)?BUNDLE.voices[pk]:null);
+  if(!pack||!Object.prototype.hasOwnProperty.call(pack,id))return null;
+  const v=pack[id];return typeof v==="string"&&v?v:null;
+}
+// Which clips may speak this sound, best first. Letters: the chosen style first (voice or Classic), then the other style.
+// Words / phrases: chosen voice, other voices, then the Classic espeak clip. Only existing clips are listed.
+function sources(kind,id,o){
+  o=o||{};const key=kind+id;
+  const v=VOICE_IDS.includes(o.voice)?o.voice:prefs.voice,ls=o.letters||prefs.letters;
+  const others=VOICE_IDS.filter(x=>x!==v);
+  const order=kind==="L"?(ls==="classic"?["classic",v,...others]:[v,"classic",...others]):[v,...others,"classic"];
+  return order.map(pk=>pk+"/"+key).filter(ck=>rawClip(ck));
+}
+function getBuf(key,blob){ // -> Promise<{buf,off,dur,id}|null>
   const ck=blob||key;
   if(A.cache.has(ck))return A.cache.get(ck);
   const p=(async()=>{
     if(!getCtx())return null;
     let ab;
     if(blob)ab=await blob.arrayBuffer();
-    else{if(!CLIPS[key])return null;ab=b64ToBuf(CLIPS[key])}
-    return trim(await decode(ab));
+    else{const raw=rawClip(key);if(!raw)return null;ab=b64ToBuf(raw)}
+    const r=trim(await decode(ab));r.id=blob?"rec/"+key:key;return r;
   })().catch(e=>{A.lastErr="decode "+key+": "+(e&&e.message||e);A.cache.delete(ck);return null});
   A.cache.set(ck,p);return p;
 }
-function preload(){
+// decode one voice's clips (and the Classic letters when that style is on) in the background, one at a time.
+// Sentence clips (S...) are left until they are needed.
+function preload(voice){
+  voice=VOICE_IDS.includes(voice)?voice:prefs.voice;
   (async()=>{
-    const keys=[...ALPHA.map(c=>"L"+c),...Object.keys(CLIPS).filter(k=>k[0]!=="L")];
+    const pack=BUNDLE.voices[voice]||{};
+    const keys=[...ALPHA.map(c=>voice+"/L"+c),...Object.keys(pack).filter(k=>k[0]!=="L"&&k[0]!=="S").map(k=>voice+"/"+k)];
+    if(prefs.letters==="classic")keys.push(...ALPHA.map(c=>"classic/L"+c));
     let bad=0;
     for(const k of keys){ if(!await getBuf(k))bad++; }
     if(bad>keys.length/2){A.badDecode=true;showBanner("🔇 I couldn't load my sounds. Tap here to try again.")}
@@ -305,7 +433,7 @@ function stopAll(){
   try{if(window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending))speechSynthesis.cancel()}catch{}
   return A.epoch;
 }
-function playHtmlAudio(url,ep,revoke){
+function playHtmlAudio(url,ep,revoke,id){
   return new Promise(res=>{
     let a;try{a=new Audio(url)}catch(e){A.lastErr="Audio: "+e;return res(false)}
     let fin=false;const h={stop(){end(true)}};
@@ -315,7 +443,7 @@ function playHtmlAudio(url,ep,revoke){
     A.active.add(h);
     if(ep!==A.epoch)return end(false);
     const p=a.play();
-    if(p&&p.then)p.then(()=>{A.started++;A.mode="audio-element"},e=>{A.lastErr="play(): "+(e&&e.name||e);end(false)});
+    if(p&&p.then)p.then(()=>{A.started++;A.mode="audio-element";A.lastClip=id||""},e=>{A.lastErr="play(): "+(e&&e.name||e);end(false)});
   });
 }
 function playBuf(item,ep){
@@ -323,13 +451,13 @@ function playBuf(item,ep){
     const c=A.ctx;
     try{
       if(ep!==A.epoch)return res(false);
-      const src=c.createBufferSource();src.buffer=item.buf;src.connect(c.destination);
+      const src=c.createBufferSource();src.buffer=item.buf;src.connect(c.destination);src.__clip=item.id;
       let fin=false;const h={stop(){try{src.stop()}catch{}end()}};
       const end=()=>{if(fin)return;fin=true;clearTimeout(tm);A.active.delete(h);res(true)};
       const tm=setTimeout(end,item.dur*1000+500);
       src.onended=()=>{A.ended++;end()};
       A.active.add(h);
-      src.start(0,item.off,item.dur);A.started++;A.mode="webaudio";
+      src.start(0,item.off,item.dur);A.started++;A.mode="webaudio";A.lastClip=item.id;
     }catch(e){A.lastErr="start: "+e;res(false)}
   });
 }
@@ -342,30 +470,33 @@ function tts(text,rate){
     return new Promise(r=>{u.onend=u.onerror=()=>r(true);setTimeout(()=>r(true),2500)});
   }catch(e){A.lastErr="tts: "+e;return false}
 }
-// say(kind,id,fallbackText): kind "L" letter, "W" word, "P" phrase. Resolves when finished (or cancelled).
+// say(kind,id,fallbackText,opts): kind "L" letter, "W" word, "P" phrase, "S" sentence. Resolves when finished (or cancelled).
+// opts: ep (epoch to obey), voice / letters (override the saved choice, used by the picker), noRec (ignore recordings), noTts.
 async function say(kind,id,text,opts){
-  const ep=opts&&opts.ep!=null?opts.ep:A.epoch;
+  opts=opts||{};
+  const ep=opts.ep!=null?opts.ep:A.epoch;
   const key=kind+id;let ok=false;
   const c=getCtx();
   if(c&&c.state!=="running"){try{await Promise.race([c.resume(),sleep(400)])}catch{}}
   if(ep!==A.epoch)return false;
-  if(kind==="L"&&recorded[id]){
+  if(kind==="L"&&recorded[id]&&!opts.noRec){
     const it=c&&await getBuf(key,recorded[id]);
     if(ep!==A.epoch)return false;
     if(it&&c.state==="running"&&await playBuf(it,ep))ok=true;
-    else if(!ok){try{ok=await playHtmlAudio(URL.createObjectURL(recorded[id]),ep,true)}catch{}}
+    else if(!ok){try{ok=await playHtmlAudio(URL.createObjectURL(recorded[id]),ep,true,"rec/"+key)}catch{}}
     if(ok||ep!==A.epoch)return ok;
   }
-  if(CLIPS[key]){
+  for(const ck of sources(kind,id,opts)){
     if(c){
-      const it=await getBuf(key);
+      const it=await getBuf(ck);
       if(ep!==A.epoch)return false;
       if(it&&await playBuf(it,ep))return true;
     }
     if(ep!==A.epoch)return false;
-    if(await playHtmlAudio("data:audio/mpeg;base64,"+CLIPS[key],ep,false))return true;
+    if(await playHtmlAudio("data:audio/mpeg;base64,"+rawClip(ck),ep,false,ck))return true;
   }
   if(ep!==A.epoch)return false;
+  if(opts.noTts)return false;
   const t=await tts(kind==="L"?(TTS_FALLBACK[id]||id):text,kind==="L"?.7:.8);
   if(!t)showBanner("🔇 I can't make sound right now. Check the volume and the silent switch, then tap here.");
   return !!t;
@@ -383,6 +514,7 @@ function wait(ms,ep){return new Promise(r=>setTimeout(()=>r(ep===A.epoch),ms))}
 // After cancel/finish all handlers are detached, so a late callback from the recognizer can never reach the game.
 const M = {fallback:false, reason:"", fails:0, msg:""};   // fallback = parent-buttons mode for THIS page session
 const HARD_MS = 6000, GRACE_MS = 1500, ABS_MS = 20000;
+const SENT_HARD_MS = 12000, SENT_SIL_MS = 1800;   // sentences: a child reads slowly with pauses; stop ~1.8 s after the last words
 const srCtor = () => window.SpeechRecognition || window.webkitSpeechRecognition || null;
 const PARENT_TEXT = {
   unsupported:"This browser can't listen to speech (the Web Speech API is missing). Use Chrome on Android.",
@@ -425,15 +557,59 @@ function matches(word,alts){
   }
   return null;
 }
+// ----- sentence reading: align what was said with the target words -----
+// Order-preserving alignment (longest common subsequence). Reading words (CVC) are STRICT: the exact word or a documented
+// alias ("10" for TEN). Puzzle words are LENIENT (SIGHT_ALIAS) and are informational only. Extra spoken words are ignored.
+const MAXTOK = 80;
+function alignSentence(words, toks){
+  const n=words.length, m=Math.min(toks.length,MAXTOK);
+  const ok=(w,t)=>{const lw=w.toLowerCase();return t===lw||((SIGHT_SET.has(w)?SIGHT_ALIAS[w]:ALIASES[w])||[]).includes(t)};
+  const d=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)
+    d[i][j]=ok(words[i],toks[j])?d[i+1][j+1]+1:Math.max(d[i+1][j],d[i][j+1]);
+  const got=new Array(n).fill(false);
+  let i=0,j=0;
+  while(i<n&&j<m){
+    if(ok(words[i],toks[j])&&d[i][j]===d[i+1][j+1]+1){got[i]=true;i++;j++}
+    else if(d[i+1][j]>=d[i][j+1])i++;
+    else j++;
+  }
+  return got;
+}
+// -> {got:[bool per word], right, decGot, decTotal, sightGot, first (index of the first missed reading word, or -1), res:"1/0/2 per word", heard}
+function evalSentence(sent, alts){
+  const words=sent.words0||(sent.words0=sent.text.match(/[A-Z]+/g)||[]);
+  let best=null;
+  for(const a of (alts||[]).slice(0,5)){
+    const toks=norm(a).split(" ").filter(Boolean);
+    const got=alignSentence(words,toks);
+    let dg=0,sg=0;words.forEach((w,k)=>{if(got[k]){if(SIGHT_SET.has(w))sg++;else dg++}});
+    const score=dg*100+sg*10-Math.min(9,Math.max(0,toks.length-words.length));
+    if(!best||score>best.score)best={score,got,heard:String(a==null?"":a).slice(0,100)};
+  }
+  if(!best)best={score:0,got:words.map(()=>false),heard:""};
+  const decTotal=words.filter(w=>!SIGHT_SET.has(w)).length;
+  const decGot=words.filter((w,k)=>!SIGHT_SET.has(w)&&best.got[k]).length;
+  const first=words.findIndex((w,k)=>!SIGHT_SET.has(w)&&!best.got[k]);
+  const res=words.map((w,k)=>best.got[k]?"1":SIGHT_SET.has(w)?"2":"0").join("");
+  return {got:best.got,right:decGot===decTotal,decGot,decTotal,sightGot:words.filter((w,k)=>SIGHT_SET.has(w)&&best.got[k]).length,first,res,heard:best.heard,words};
+}
 function resumeAudio(){try{if(A.ctx&&A.ctx.state!=="running")A.ctx.resume().catch(()=>{})}catch{}}
-function listen(){
+function listen(o){
+  const long=!!(o&&o.long), HARD=long?SENT_HARD_MS:HARD_MS, ABS=long?SENT_HARD_MS+8000:ABS_MS;
   return new Promise(resolve=>{
     const C=srCtor();
     if(!C){resolve({t:"error",code:"unsupported"});return}
     cancelListen();
     let r;
     try{r=new C()}catch{resolve({t:"error",code:"ctor"});return}
-    const s={r,done:false,timers:[],resolve,started:false};
+    const s={r,done:false,timers:[],resolve,started:false,segs:[],base:0,restarts:0,t0:Date.now()};
+    // long mode: what was said so far, as up to 5 alternative transcripts (alternative j of every segment joined)
+    const partial=()=>{
+      const segs=s.segs.filter(Boolean);if(!segs.length)return {t:"none"};
+      const alts=[];for(let j=0;j<5;j++){const t=segs.map(a=>a[j]||a[0]).join(" ");if(!alts.includes(t))alts.push(t)}
+      return {t:"result",alts};
+    };
     LIS=s;
     const clear=()=>{s.timers.forEach(clearTimeout);s.timers=[]};
     const fin=res=>{
@@ -443,20 +619,30 @@ function listen(){
     s.fin=fin;
     s.arm=()=>{ // hard stop after HARD_MS; a stop() normally delivers a final result, else we give up after a short grace
       s.timers.forEach(clearTimeout);s.timers=[];
-      s.timers.push(setTimeout(()=>{ if(s.done)return; s.stop() },HARD_MS));
-      s.timers.push(setTimeout(()=>giveUp(),ABS_MS));
+      s.timers.push(setTimeout(()=>{ if(s.done)return; s.stop() },HARD));
+      s.timers.push(setTimeout(()=>giveUp(),ABS));
     };
-    const giveUp=()=>{ if(s.done)return; try{r.abort()}catch{} fin({t:"none",timeout:true}) };
+    const giveUp=()=>{ if(s.done)return; try{r.abort()}catch{} fin(long&&s.segs.some(Boolean)?partial():{t:"none",timeout:true}) };
     s.stop=()=>{ // user tapped to stop, or the hard timeout: ask for the final result, but never wait forever
       if(s.done||s.stopping)return; s.stopping=true;
       try{r.stop()}catch{}
       s.timers.push(setTimeout(giveUp,GRACE_MS));
     };
-    try{r.lang="en-US";r.interimResults=false;r.maxAlternatives=5;r.continuous=false}catch{}
-    r.onstart=()=>{ if(s.done||LIS!==s)return; if(!s.started){s.started=true; if(!s.stopping)s.arm()} };   // permission prompt time does not count
+    try{r.lang="en-US";r.interimResults=long;r.maxAlternatives=5;r.continuous=long}catch{}
+    r.onstart=()=>{ if(s.done||LIS!==s)return; if(!s.started){s.started=true;s.t0=Date.now(); if(!s.stopping)s.arm()} };   // permission prompt time does not count
     r.onaudiostart=r.onstart;
     r.onresult=e=>{
       if(s.done||LIS!==s)return;
+      if(long){
+        try{for(let i=e.resultIndex||0;i<e.results.length;i++){
+          const res=e.results[i],a=[];
+          for(let j=0;j<res.length&&a.length<5;j++){const t=res[j]&&res[j].transcript;if(typeof t==="string"&&t.trim())a.push(t)}
+          if(a.length)s.segs[s.base+i]=a;
+        }}catch{}
+        clearTimeout(s.sil);                                   // she is still reading: wait for a pause
+        s.sil=setTimeout(()=>{ if(!s.done)s.stop() },SENT_SIL_MS);s.timers.push(s.sil);
+        return;
+      }
       const alts=[];
       try{
         for(let i=0;i<e.results.length;i++){const res=e.results[i];for(let j=0;j<res.length&&alts.length<5;j++){const t=res[j]&&res[j].transcript;if(typeof t==="string"&&t.trim())alts.push(t)}}
@@ -466,10 +652,22 @@ function listen(){
     r.onerror=e=>{
       if(s.done||LIS!==s)return;
       const code=(e&&e.error)||"unknown";
-      if(code==="no-speech"||code==="aborted")return fin({t:"none"});
+      if(code==="no-speech"||code==="aborted")return fin(long?partial():{t:"none"});
+      if(long&&s.segs.some(Boolean))return fin(partial());       // keep what was heard before the error
       fin({t:"error",code});
     };
-    r.onend=()=>{ if(s.done||LIS!==s)return; fin({t:"none"}) };
+    r.onend=()=>{
+      if(s.done||LIS!==s)return;
+      if(long){
+        // the recognizer may end after the first words (child pace): listen again, keeping what we have
+        if(!s.stopping&&s.segs.some(Boolean)&&s.restarts<3&&Date.now()-s.t0<HARD-800){
+          s.restarts++;s.base=s.segs.length;
+          try{r.start();return}catch{}
+        }
+        return fin(partial());
+      }
+      fin({t:"none"});
+    };
     s.arm();
     try{r.start()}
     catch(e){
@@ -522,10 +720,11 @@ function home(){
   <div class="grid">${Object.entries(FAMILIES).map(([k,f])=>`<button class="btn ${k===state.family?'gold':''}" data-f="${k}"><span class="big" style="font-size:44px">${f.emoji}</span><br>${f.label} words</button>`).join("")}</div></div>
   <button class="btn green" id="go" style="font-size:34px">▶ Play</button>
   <button class="btn violet" id="castle" style="font-size:28px">🏰 My Castle</button>
+  <div class="row"><button class="btn" id="puzzle" style="font-size:22px;flex:1 1 140px">🧩 Puzzle words</button><button class="btn" id="sents" style="font-size:22px;flex:1 1 140px">📖 Read sentences</button></div>
   ${M.fallback?`<div class="why" id="mnote">🙉 The listening ear is resting, so a grown-up checks the reading. <b>Grown-up:</b> ${esc(PARENT_TEXT[M.reason]||PARENT_TEXT.other)}</div>
   <div class="row"><button class="btn small gold" id="retrymic">🎤 Try the mic again</button></div>`:""}
   ${M.msg?`<div class="small-note" style="text-align:center" id="mmsg" aria-live="polite">${esc(M.msg)}</div>`:""}
-  <div class="row"><button class="btn small" id="test">🔊 Test sound</button><button class="btn small" id="testmic">🎤 Test microphone</button></div>
+  <div class="row"><button class="btn small" id="test">🔊 Test sound</button><button class="btn small" id="testmic">🎤 Test microphone</button><button class="btn small" id="voice">🗣️ Voice: ${esc(voiceName(prefs.voice))}</button></div>
   <div class="small-note" id="tstat" style="text-align:center" aria-live="polite"></div>
   <div class="row"><button class="btn small" id="setup">🔧 Grown-up: record sounds (${rec}/26)</button></div>
   ${rec<26?`<div class="small-note" style="text-align:center">Tip: record the 26 letter sounds in your own voice for best results. Until then, built-in sounds are used.</div>`:""}`);
@@ -533,9 +732,12 @@ function home(){
   app.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{state.family=b.dataset.f;save();home()});
   $("go").onclick=()=>play(state.family);
   $("castle").onclick=castle;
+  $("puzzle").onclick=()=>play(state.family,{sight:true});
+  $("sents").onclick=sentHome;
   $("setup").onclick=setup;
   $("test").onclick=testSound;
   $("testmic").onclick=micTest;
+  $("voice").onclick=voicePicker;
   if($("retrymic"))$("retrymic").onclick=retryMic;
 }
 function retryMic(){
@@ -564,26 +766,85 @@ async function testSound(){
   }
 }
 
+// ---------- grown-up voice picker ----------
+const AUDITION = [["L","M","mmm"],["W","SUN","sun"],["P","praise0",PRAISE[0]]]; // a letter sound, a word, a cheer
+function voicePicker(){
+  leave();const rid=roundId;
+  h(`<div class="bar"><button class="btn small" id="back">🏠 Back</button><h2 style="font-size:22px">Voice</h2><span></span></div>
+  <div class="card"><div class="small-note" style="text-align:left">Grown-up: tap <b>▶ Hear</b> to listen (a letter sound, a word and a cheer), then <b>✓ Choose</b>. The new voice is used everywhere in the game straight away.</div></div>
+  <div id="vlist" style="display:flex;flex-direction:column;gap:14px">${VOICES.map(v=>`<div class="vcard" data-v="${esc(v.id)}">
+    <div class="vtitle"><span>${esc(v.name)}</span><span class="vbadge">✓ In use</span></div>
+    <div class="small-note" style="font-size:16px">${esc(v.blurb)}</div>
+    <div class="vbtns"><button class="btn small vplay" data-play="${esc(v.id)}">▶ Hear</button><button class="btn small green vsel" data-sel="${esc(v.id)}">✓ Choose</button></div></div>`).join("")}</div>
+  <div class="card"><div style="font-size:20px;font-weight:700;margin-bottom:8px">Letter sounds</div>
+  <div class="seg" role="group" aria-label="Letter sounds"><button class="btn small" id="ls-voice" data-ls="voice">Voice</button><button class="btn small" id="ls-classic" data-ls="classic">Classic</button></div>
+  <div class="small-note" style="margin-top:8px;text-align:left">Voice = the letter sounds made by the chosen voice. Classic = the older, more robotic set. Letter sounds you recorded yourself always win.</div></div>
+  <div class="small-note" id="vstat" style="text-align:center;min-height:20px" aria-live="polite"></div>`);
+  $("back").onclick=home;
+  const note=m=>{const e=$("vstat");if(e&&rid===roundId)e.textContent=m};
+  let playing="";
+  const paint=()=>{
+    if(rid!==roundId)return;
+    app.querySelectorAll(".vcard").forEach(c=>{
+      const id=c.dataset.v,sel=id===prefs.voice;
+      c.classList.toggle("sel",sel);
+      const sb=c.querySelector(".vsel");sb.textContent=sel?"✓ Chosen":"✓ Choose";sb.setAttribute("aria-pressed",sel?"true":"false");
+      const pb=c.querySelector(".vplay");pb.textContent=playing===id?"■ Stop":"▶ Hear";pb.setAttribute("aria-pressed",playing===id?"true":"false");
+    });
+    app.querySelectorAll("[data-ls]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.ls===prefs.letters?"true":"false"));
+  };
+  const audition=async id=>{
+    if(rid!==roundId)return;
+    if(playing===id){stopAll();playing="";paint();note("");return}
+    unlock();
+    const ep=stopAll();playing=id;paint();note("Playing "+voiceName(id)+"... 🔊");
+    const o={ep,voice:id,letters:"voice",noRec:true,noTts:true};
+    let good=0;
+    for(let i=0;i<AUDITION.length;i++){
+      const [k,cid,txt]=AUDITION[i];
+      const ok=await say(k,cid,txt,o);
+      if(ep!==A.epoch){if(rid===roundId&&playing===id){playing="";paint();note("")}return}   // something else took over the sound
+      if(ok)good++;
+      if(i<AUDITION.length-1&&!await wait(300,ep)){if(rid===roundId&&playing===id){playing="";paint();note("")}return}
+    }
+    if(rid===roundId&&playing===id){playing="";paint();note(good===AUDITION.length?"That was "+voiceName(id)+".":"Some sounds did not play. Check the volume and the silent switch.")}
+  };
+  app.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>audition(b.dataset.play));
+  app.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.sel;if(!VOICE_IDS.includes(id))return;
+    stopAll();playing="";prefs.voice=id;savePrefs();paint();preload(id);
+    note(voiceName(id)+" will read to Julia now.");
+  });
+  app.querySelectorAll("[data-ls]").forEach(b=>b.onclick=async()=>{
+    unlock();prefs.letters=b.dataset.ls==="classic"?"classic":"voice";savePrefs();
+    const ep=stopAll();playing="";paint();preload();
+    note(prefs.letters==="classic"?"Classic letter sounds are on.":"Letter sounds now come from "+voiceName(prefs.voice)+".");
+    await say("L","M","mmm",{ep,noRec:true,noTts:true});   // a quick demo of the style
+  });
+  paint();
+}
+
 // ---------- the reading game ----------
-function play(fam){
+function play(fam,opt){
+  opt=opt||{};                       // opt.sight: a round of the puzzle (sight) words instead of a castle door
   leave();const rid=roundId;
   state.roundNo++;save();const roundNo=state.roundNo;
   if(!srCtor())noteFallback("unsupported");
-  const deck=pickRound(fam).map(w=>({w,rq:false}));
+  const deck=(opt.sight?[...SIGHT].sort(()=>Math.random()-.5):pickRound(fam)).map(w=>({w,rq:false}));
   let i=0,finished=false;const requeued=new Set();
   const live=()=>rid===roundId;
   function show(){
     if(!live())return;
     if(i>=deck.length)return done();
-    const item=deck[i],w=item.w,myI=i,isFirst=i===0&&!item.rq;
+    const item=deck[i],w=item.w,myI=i,isFirst=i===0&&!item.rq,sight=SIGHT_SET.has(w);
     const card={phase:"idle",done:false,misses:0,noHear:0,practice:false,tok:0,micStart:0,armedAt:Date.now()+350,fb:"ask",viaParent:false};
     const alive=()=>live()&&i===myI&&!finished&&!card.done;
     h(`<div class="bar"><button class="btn small" id="back" aria-label="Home">🏠</button><div>${i+1} / ${deck.length}</div><div class="stars" id="st">⭐ ${state.stars}</div></div>
     <div class="progress"><i style="width:${Math.min(100,i/deck.length*100)}%"></i></div>
     <div id="fx"></div>
     <div class="card wordcard" id="wc">
-      <div class="hint" id="hint">Touch each letter to hear its sound 👆</div>
-      <div class="letters">${[...w].map((c,k)=>`<div class="L ${VOWELS.includes(c)?'v':'c'}" style="--n:${Math.max(3,w.length)}" data-k="${k}" role="button" aria-label="${c}">${c}</div>`).join("")}</div>
+      <div class="hint" id="hint">${sight?"A puzzle word! 🧩 Look at it, then say it!":"Touch each letter to hear its sound 👆"}</div>
+      <div class="letters">${[...w].map((c,k)=>`<div class="L ${sight?'s':VOWELS.includes(c)?'v':'c'}" style="--n:${Math.max(3,w.length)}" data-k="${k}" role="button" aria-label="${c}">${c}</div>`).join("")}</div>
       <div class="pic" id="pic" aria-hidden="true"></div>
       <div class="cbpanel hidden" id="cb" role="status"></div>
     </div>
@@ -595,7 +856,7 @@ function play(fam){
     const clearLit=()=>L.forEach(e=>e.classList.remove("lit"));
     const setHint=t=>{const e=$("hint");if(e)e.textContent=t};
     const showWhy=t=>{const e=$("why");if(e){e.textContent=t;e.classList.toggle("hidden",!t)}};
-    const reveal=()=>{const p=$("pic");if(p){p.textContent=PIC[w]||"";p.classList.add("pop")}};
+    const reveal=()=>{const p=$("pic");if(p){p.textContent=PIC[w]||(sight?"🧩":"");p.classList.add("pop")}};
     function setPhase(p){
       card.phase=p;const m=$("mic"),l=$("miclab");if(!m)return;m.dataset.phase=p;
       m.classList.toggle("listening",p==="listening");m.classList.toggle("thinking",p==="thinking");
@@ -701,6 +962,16 @@ function play(fam){
       recordMiss(w,heard,step,roundNo);
       setPhase("prompt");const ep=stopAll();clearLit();
       const stale=()=>ep!==A.epoch||!alive();
+      if(sight&&step<3){ // puzzle words are not sounded out: say it for her, then she repeats it
+        setHint("Hmm, let's try again! Listen... 👂");
+        await sayP("tryagain",ep);if(stale())return;
+        if(!await wait(150,ep)||stale())return;
+        reveal();await sayWord(w,ep);if(stale())return;
+        if(!await wait(350,ep)||stale())return;
+        setHint("Now you say it! 🎤");
+        await sayP("nowyou",ep);if(stale())return;
+        setPhase("idle");nudge();return;
+      }
       if(step===1){
         setHint("Hmm, let's try again! Listen to the first sound 👂");
         await sayP("tryagain",ep);if(stale())return;
@@ -785,7 +1056,7 @@ function play(fam){
     $("skip").onclick=()=>{if(!alive())return;card.done=true;stopAll();cancelListen();i++;show()};
     $("gu").onclick=()=>enterFallback("manual");
     refreshMode();
-    if(isFirst&&!M.fallback)later(()=>{if(alive()&&card.phase==="idle"&&!card.touched&&A.active.size===0)sayP("say",A.epoch)},500,rid); // gentle one-time prompt; never cuts off a letter she tapped
+    if(isFirst&&!M.fallback)later(()=>{if(alive()&&card.phase==="idle"&&!card.touched&&A.active.size===0)sayP(sight?"puzzle":"say",A.epoch)},500,rid); // gentle one-time prompt; never cuts off a letter she tapped
   }
   function done(){
     if(finished||!live())return;finished=true;
@@ -798,7 +1069,268 @@ function play(fam){
     <div class="row" style="margin-top:14px"><button class="btn green" id="again">Again</button><button class="btn violet" id="mc">🏰 My Castle</button><button class="btn" id="home">🏠 Home</button></div></div>`);
     const ep=stopAll();
     (async()=>{await say("P","done",DONE_TEXT,{ep});if(room&&live()&&ep===A.epoch)await sayP("room",ep)})();
-    $("again").onclick=()=>play(fam);
+    $("again").onclick=()=>play(fam,opt);
+    $("mc").onclick=castle;
+    $("home").onclick=home;
+  }
+  show();
+}
+
+// ---------- sentences ----------
+const readCount = () => SENTENCES.filter(x=>nz((state.sents[x.id]||{}).wins)>0).length;
+function sentHome(){
+  leave();const rid=roundId;
+  const un=SENTENCES.filter(sentUnlocked);
+  const sightLeft=SIGHT.filter(w=>!wonWord(w));
+  const tile=x=>sentUnlocked(x)
+    ?`<div class="stile open"><span class="e">${esc(x.emoji)}</span><span class="t">${esc(x.text)}</span>${state.sentStars.includes(x.id)?'<span class="st">⭐</span>':""}</div>`
+    :`<div class="stile lock"><span class="e">🔒</span><span class="t">Read more words to unlock!</span><span class="small-note" style="flex-basis:100%">Grown-up: needs ${missingWords(x).map(esc).join(", ")}</span></div>`;
+  h(`<div class="bar"><button class="btn small" id="back" aria-label="Home">🏠</button><h2>📖 Sentences</h2><span></span></div>
+  <div class="card" id="shead">${un.length
+    ?`<div style="font-size:26px;margin-bottom:12px">You can read ${un.length} sentence${un.length===1?"":"s"}! ✨</div><button class="btn green" id="sgo" style="font-size:30px">▶ Read sentences</button>`
+    :`<div style="font-size:26px;margin-bottom:10px" id="snone">Read more words to open sentences! 📚</div>
+      <div class="small-note" style="text-align:left">Grown-up: a sentence opens when ${Name} has read every word in it right once, including the puzzle words ${SIGHT.map(esc).join(", ")}. Play a castle door and the 🧩 Puzzle words, then come back.</div>`}
+    <div class="small-note" style="margin-top:8px">Sentences I can read: ${readCount()}</div></div>
+  ${sightLeft.length?`<div class="card"><div style="font-size:20px;margin-bottom:8px">🧩 Puzzle words to learn: ${sightLeft.map(esc).join(" ")}</div><button class="btn violet small" id="pz">🧩 Puzzle words</button></div>`:""}
+  <div class="slist" id="slist">${SENTENCES.map(tile).join("")}</div>`);
+  $("back").onclick=home;
+  if($("sgo"))$("sgo").onclick=playSentences;
+  if($("pz"))$("pz").onclick=()=>play(state.family,{sight:true});
+}
+function playSentences(){
+  const first=pickSentences();
+  if(!first.length)return sentHome();
+  leave();const rid=roundId;
+  state.roundNo++;save();const roundNo=state.roundNo;
+  if(!srCtor())noteFallback("unsupported");
+  const deck=first.map(x=>({x,rq:false}));
+  let i=0,finished=false;const requeued=new Set();
+  const live=()=>rid===roundId;
+  function show(){
+    if(!live())return;
+    if(i>=deck.length)return done();
+    const item=deck[i],S=item.x,words=S.words,myI=i,isFirst=i===0&&!item.rq;
+    const card={phase:"idle",done:false,misses:0,noHear:0,practice:false,tok:0,micStart:0,armedAt:Date.now()+350,fb:"ask",viaParent:false};
+    const alive=()=>live()&&i===myI&&!finished&&!card.done;
+    h(`<div class="bar"><button class="btn small" id="back" aria-label="Home">🏠</button><div>${i+1} / ${deck.length}</div><div class="stars" id="st">⭐ ${state.stars}</div></div>
+    <div class="progress"><i style="width:${Math.min(100,i/deck.length*100)}%"></i></div>
+    <div id="fx"></div>
+    <div class="card wordcard" id="wc">
+      <div class="hint" id="hint">Read the sentence! Touch a word to hear its sounds 👆</div>
+      <div class="sent" id="sent">${words.map((w,k)=>`<button class="SW ${SIGHT_SET.has(w)?'puz':''}" data-k="${k}" aria-label="${w}">${w}${k===words.length-1?'<span class="dot">.</span>':""}</button>`).join("")}</div>
+      <div class="pic" id="pic" aria-hidden="true"></div>
+      <div class="cbpanel hidden" id="cb" role="status"></div>
+    </div>
+    <div class="micwrap" id="micwrap"><button class="mic" id="mic" data-phase="idle" aria-label="Read the sentence" aria-pressed="false">🎤</button><div class="miclab" id="miclab" aria-live="polite">Read the sentence!</div></div>
+    <div class="row hidden" id="fb"></div>
+    <div class="why hidden" id="why" role="status"></div>
+    <div class="row hidden" id="extra"><button class="btn small" id="skip">➡️ Next sentence</button><button class="btn small" id="gu">👪 Grown-up buttons</button></div>`);
+    const SW=[...app.querySelectorAll(".SW")];
+    const clearLit=()=>SW.forEach(e=>e.classList.remove("lit"));
+    const setHint=t=>{const e=$("hint");if(e)e.textContent=t};
+    const showWhy=t=>{const e=$("why");if(e){e.textContent=t;e.classList.toggle("hidden",!t)}};
+    const reveal=()=>{const p=$("pic");if(p){p.textContent=S.emoji;p.classList.add("pop")}};
+    const mark=got=>SW.forEach((e,k)=>{e.classList.toggle("got",!!got[k]);e.classList.toggle("nyet",!got[k])});   // green glow / soft orange, never red
+    function setPhase(p){
+      card.phase=p;const m=$("mic"),l=$("miclab");if(!m)return;m.dataset.phase=p;
+      m.classList.toggle("listening",p==="listening");m.classList.toggle("thinking",p==="thinking");
+      m.setAttribute("aria-pressed",p==="listening"?"true":"false");m.classList.toggle("nudge",false);
+      if(l)l.textContent=p==="listening"?"Listening... tap when done 🛑":p==="thinking"?"Hmm...":p==="feedback"?"":"Read the sentence!";
+    }
+    const nudge=()=>{const m=$("mic");if(m)m.classList.add("nudge")};
+    function refreshMode(){
+      $("micwrap").classList.toggle("hidden",M.fallback);
+      $("fb").classList.toggle("hidden",!M.fallback||card.done);
+      if(M.fallback&&!card.done){
+        showWhy("🙉 My listening ear is resting, so a grown-up checks the reading!  Grown-up: "+(PARENT_TEXT[M.reason]||PARENT_TEXT.other)+" (Home > \"Try the mic again\" when it is fixed.)");
+        renderFB();
+      }
+    }
+    function enterFallback(reason){
+      if(!alive())return;
+      noteFallback(reason);cancelListen();
+      if(card.phase==="listening"||card.phase==="thinking")setPhase("idle");
+      $("extra").classList.add("hidden");setHint("Let's read this one with a grown-up! 👪");refreshMode();
+    }
+    function renderFB(){
+      const fb=$("fb");if(!fb||card.fb!=="ask")return;
+      fb.innerHTML=`<button class="btn" id="read">👁 I read it!</button>`;
+      $("read").onclick=()=>{
+        if(!alive()||Date.now()<card.armedAt)return;
+        card.fb="reveal";const ep=stopAll();clearLit();
+        say("S",S.id,S.text,{ep});reveal();setHint("Did you read it right?");
+        fb.innerHTML=`<button class="btn green" id="yes" disabled>⭐ Got it!</button><button class="btn" id="no" disabled>↻ Try later</button>`;
+        later(()=>{const y=$("yes"),n=$("no");if(y)y.disabled=false;if(n)n.disabled=false},700,rid);
+        $("yes").onclick=()=>{if(!alive())return;card.viaParent=true;success(null,"")};
+        $("no").onclick=()=>{
+          if(!alive())return;card.done=true;
+          recordSentMiss(S.id,"",Math.min(3,card.misses+1),roundNo,"",[],{via:"parent"});
+          if(!requeued.has(S.id)&&!item.rq){requeued.add(S.id);deck.push({x:S,rq:true})}
+          i++;show();
+        };
+      };
+    }
+    function burst(){
+      const fx=$("fx");if(!fx)return;fx.innerHTML="";
+      const E=["👑","👸","✨","⭐",...[...S.emoji].filter(c=>c.trim()&&c.codePointAt(0)>0x2000).slice(0,3)];
+      for(let k=0;k<16;k++){
+        const sp=document.createElement("span");sp.textContent=E[k%E.length];
+        const a=Math.random()*Math.PI*2,d=90+Math.random()*130;
+        sp.style.setProperty("--dx",Math.round(Math.cos(a)*d)+"px");sp.style.setProperty("--dy",Math.round(Math.sin(a)*d-50)+"px");
+        sp.style.animationDelay=(Math.random()*.25)+"s";fx.appendChild(sp);
+      }
+      later(()=>{const f=$("fx");if(f)f.innerHTML=""},1900,rid);
+    }
+    function success(ev,heard){
+      if(card.done||!alive())return;
+      card.done=true;setPhase("feedback");const ep=stopAll();clearLit();cancelListen();
+      $("extra").classList.add("hidden");$("fb").classList.add("hidden");$("micwrap").classList.toggle("hidden",M.fallback);showWhy("");
+      if(ev)mark(ev.got);else mark(words.map(()=>true));
+      const r=recordSentWin(S.id,heard,Math.min(3,card.misses+1),roundNo,item.rq,ev?ev.res:words.map(w=>SIGHT_SET.has(w)?"2":"1").join(""),card.viaParent?{via:"parent"}:null);
+      $("st").textContent="⭐ "+state.stars;
+      burst();reveal();setHint("Great sentence reading! ⭐");
+      const room=r.unlocked.find(u=>u.room);
+      if(r.star||r.comeback){const cb=$("cb");cb.classList.remove("hidden");cb.classList.add("pop");
+        cb.textContent=(r.star?"⭐ Sentence Star! ":"")+(r.comeback?"👑 Comeback Crown! ":"")+(room?room.e+" New room: "+room.name+"!":"")}
+      const alive2=()=>live()&&i===myI&&!finished;
+      (async()=>{
+        const minShow=nap(1700,rid);
+        await Promise.race([sayP("sentpraise",ep),nap(3500,rid)]);if(!alive2())return;
+        if(r.star){await Promise.race([sayP("star",ep),nap(3000,rid)]);if(!alive2())return}
+        if(r.comeback){
+          await Promise.race([sayP("comeback",ep),nap(3000,rid)]);if(!alive2())return;
+          if(room){await Promise.race([sayP("room",ep),nap(3000,rid)]);if(!alive2())return}
+        }
+        await Promise.race([say("S",S.id,S.text,{ep}),nap(6000,rid)]);if(!alive2())return;   // now the whole sentence is read aloud
+        await minShow;if(!alive2())return;
+        await nap(r.comeback?1200:450,rid);if(!alive2())return;
+        i++;show();
+      })();
+    }
+    function practiceDone(heard,res){
+      if(card.done||!alive())return;
+      card.done=true;setPhase("feedback");const ep=stopAll();clearLit();cancelListen();
+      $("extra").classList.add("hidden");
+      recordSentPractice(S.id,heard,res||"");
+      if(!requeued.has(S.id)&&!item.rq){requeued.add(S.id);deck.push({x:S,rq:true})}   // back once more later; never loops
+      reveal();setHint("Great practice, "+Name+"! 💪 We'll read this one again later.");
+      const alive2=()=>live()&&i===myI&&!finished;
+      (async()=>{
+        const minShow=nap(1700,rid);
+        await Promise.race([sayP("practice",ep),nap(3000,rid)]);if(!alive2())return;
+        await minShow;if(!alive2())return;
+        await nap(400,rid);if(!alive2())return;
+        i++;show();
+      })();
+    }
+    // ----- the ladder: the FIRST missed reading word goes through the word ladder, then she re-reads the whole sentence -----
+    async function onMiss(ev){
+      card.misses++;const step=card.misses;
+      const missedWords=ev.words.filter((w,k)=>!SIGHT_SET.has(w)&&!ev.got[k]);
+      recordSentMiss(S.id,ev.heard,Math.min(3,step),roundNo,ev.res,[...new Set(missedWords)]);
+      setPhase("prompt");const ep=stopAll();clearLit();
+      const stale=()=>ep!==A.epoch||!alive();
+      const k0=ev.first, w=words[k0], el=SW[k0];
+      el.classList.add("lit");
+      const finish=async()=>{
+        el.classList.remove("lit");
+        setHint("Now read the whole sentence! 🎤");
+        await sayP("all",ep);if(stale())return;
+        setPhase("idle");nudge();
+      };
+      if(step===1){
+        setHint("Hmm, let's try again! Listen to the first sound of "+w+" 👂");
+        await sayP("tryagain",ep);if(stale())return;
+        if(!await wait(150,ep)||stale())return;
+        await sayLetter(w[0],ep);if(stale())return;
+        if(!await wait(250,ep)||stale())return;
+        await finish();
+      }else if(step===2){
+        setHint("Let's sound out "+w+" together! 👂");
+        await sayP("soundout",ep);if(stale())return;
+        if(!await wait(250,ep)||stale())return;
+        for(let k=0;k<w.length;k++){
+          await sayLetter(w[k],ep);if(stale())return;
+          if(!await wait(600,ep)||stale())return;
+        }
+        await finish();
+      }else{
+        card.practice=true;
+        setHint("Listen... 👂");
+        await sayP("listen",ep);if(stale())return;
+        if(!await wait(250,ep)||stale())return;
+        await sayWord(w,ep);if(stale())return;
+        if(!await wait(350,ep)||stale())return;
+        await finish();
+      }
+    }
+    function noHear(){
+      card.noHear++;setPhase("idle");
+      setHint("I didn't hear you. Tap the 🎤 and try again!");nudge();
+      sayP("nohear",stopAll());
+      if(card.noHear>=3){$("extra").classList.remove("hidden");showWhy("Grown-up: nothing was heard 3 times. Check the volume/mic, or use Next sentence / Grown-up buttons.")}
+    }
+    async function onMic(){
+      if(!alive()||Date.now()<card.armedAt||M.fallback)return;
+      if(card.phase==="feedback"||card.phase==="thinking")return;
+      if(card.phase==="listening"){
+        if(Date.now()-card.micStart<600)return;
+        setPhase("thinking");stopListening();return;
+      }
+      if(!srCtor()){enterFallback("unsupported");return}
+      stopAll();clearLit();showWhy("");card.touched=true;
+      card.micStart=Date.now();const tok=++card.tok;
+      setPhase("listening");setHint("I'm listening... read the sentence! 👂");
+      const res=await listen({long:true});
+      if(!alive()||tok!==card.tok)return;
+      if(res.t==="cancelled"){if(card.phase==="listening"||card.phase==="thinking")setPhase("idle");return}
+      setPhase("idle");
+      if(res.t==="error"){
+        const e=classifyErr(res.code);
+        if(e.fatal)return enterFallback(e.reason);
+        setHint(e.kid);showWhy("Grown-up: "+e.parent);nudge();sayP("nohear",stopAll());return;
+      }
+      M.fails=0;
+      if(res.t==="none"){ if(card.practice)return practiceDone("",""); return noHear() }      // silence: friendly retry, nothing logged, no penalty (after the ladder, practice just finishes)
+      const ev=evalSentence(S,res.alts);
+      mark(ev.got);
+      if(card.practice)return practiceDone(ev.heard,ev.res);
+      if(ev.right)return success(ev,ev.heard);
+      return onMiss(ev);
+    }
+    SW.forEach((el,k)=>{
+      el.oncontextmenu=e=>e.preventDefault();
+      el.onclick=async()=>{          // tap a word: its letter sounds one by one (never the whole word)
+        if(!alive()||card.phase==="feedback")return;
+        card.touched=true;
+        if(card.phase==="listening"||card.phase==="thinking")cancelListen();
+        const ep=stopAll();clearLit();setPhase("idle");
+        el.classList.add("lit");
+        for(const c of words[k]){
+          await sayLetter(c,ep);if(ep!==A.epoch)return;
+          if(!await wait(350,ep))return;
+        }
+        el.classList.remove("lit");
+      };
+    });
+    $("back").onclick=()=>{if(Date.now()>=card.armedAt)home()};
+    $("mic").onclick=onMic;
+    $("skip").onclick=()=>{if(!alive())return;card.done=true;stopAll();cancelListen();i++;show()};
+    $("gu").onclick=()=>enterFallback("manual");
+    refreshMode();
+    if(isFirst&&!M.fallback)later(()=>{if(alive()&&card.phase==="idle"&&!card.touched&&A.active.size===0)sayP("sread",A.epoch)},500,rid);
+  }
+  function done(){
+    if(finished||!live())return;finished=true;
+    state.stickers++;const un=checkUnlocks();save();
+    h(`<div class="card" style="padding:40px 16px"><div class="big pop">📖</div>
+    <h1>Well done, Princess ${Name}!</h1>
+    <div style="font-size:30px;margin:14px">You read your sentences 🎀</div>
+    ${un.length?`<div class="cbpanel pop" id="newstuff">${un.map(u=>`${u.e} ${esc(u.name)}`).join(" &nbsp; ")}</div>`:""}
+    <div class="row" style="margin-top:14px"><button class="btn green" id="again">Again</button><button class="btn violet" id="mc">🏰 My Castle</button><button class="btn" id="home">🏠 Home</button></div></div>`);
+    const ep=stopAll();
+    (async()=>{await say("P","done",DONE_TEXT,{ep})})();
+    $("again").onclick=()=>sentHome();
     $("mc").onclick=castle;
     $("home").onclick=home;
   }
@@ -808,7 +1340,7 @@ function play(fam){
 // ---------- My Castle (progress) ----------
 function castle(){
   leave();const rid=roundId;
-  const groups=[...Object.values(FAMILIES).map(f=>({label:f.label+" words",emoji:f.emoji,words:f.words})),{label:"My name",emoji:"👑",words:[NAME]}];
+  const groups=[...Object.values(FAMILIES).map(f=>({label:f.label+" words",emoji:f.emoji,words:f.words})),{label:"My name",emoji:"👑",words:[NAME]},{label:"Puzzle words",emoji:"🧩",words:SIGHT}];
   const tile=w=>{
     const b=state.words[w];
     if(!b||!b.wins)return `<div class="tile lock"><div class="e">${PIC[w]||"❓"}</div>${esc(w)}</div>`;
@@ -826,7 +1358,10 @@ function castle(){
   <div class="tiles stk" id="stk">${CATALOG.map(c=>state.earned[c.id]
     ?`<div class="sticker"><div class="e">${c.e}</div><b>${esc(c.name)}</b></div>`
     :`<div class="sticker lock"><div class="e">${c.e}</div><b>???</b><div>${esc(c.need)}</div></div>`).join("")}</div>
-  ${state.crowns.length?`<div style="margin-top:12px;font-size:20px">My comeback crowns: ${state.crowns.slice(-12).map(c=>"👑 "+esc(c.w)).join(" &nbsp;")}</div>`:""}</div>
+  ${state.crowns.length?`<div style="margin-top:12px;font-size:20px">My comeback crowns: ${state.crowns.slice(-12).map(c=>"👑 "+esc(c.s&&SENT_BY_ID[c.s]?SENT_BY_ID[c.s].emoji:c.w)).join(" &nbsp;")}</div>`:""}</div>
+  <div class="card" id="scard"><h2>📖 Sentences I can read: <span id="scount">${readCount()}</span></h2>
+  <div class="small-note" style="margin:6px 0">${readCount()?"Read a sentence right the first time to earn a Sentence Star ⭐":"Learn the words and puzzle words, then open Read sentences on the home screen! ✨"}</div>
+  ${state.sentStars.length?`<div style="font-size:22px" id="sstars">Sentence Stars: ${state.sentStars.map(id=>"⭐"+esc((SENT_BY_ID[id]||{}).emoji||"")).join(" &nbsp;")}</div>`:""}</div>
   <div class="card"><h2>Words we're practicing 🌱</h2>
   ${practicing.length?`<div class="small-note" style="margin:6px 0 10px">Everybody practices! Read these right the first time to win a comeback crown 👑</div>
   <div class="tiles" id="prac">${practicing.map(w=>`<div class="tile grow"><div class="e">${PIC[w]||"🌱"}</div>${esc(w)}<div>🌱</div></div>`).join("")}</div>`
@@ -846,11 +1381,20 @@ function grown(rid){
   const panel=$("gpanel");if(!panel||rid!==roundId)return;
   const rows=Object.keys(state.words).map(w=>[w,state.words[w]]).filter(([,b])=>b.tries>0).sort((a,b)=>b[1].miss-a[1].miss||a[0].localeCompare(b[0]));
   const arrow={up:"↑ better",down:"↓",same:"→","-":"-"};
+  const wordsTab=()=>rows.length?`<table class="gt"><thead><tr><th style="width:17%">Word</th><th style="width:11%">Tries</th><th style="width:11%">Wins</th><th style="width:13%">1st try</th><th style="width:27%">Heard (miss)</th><th style="width:21%">Trend</th></tr></thead><tbody>${rows.map(([w,b])=>`<tr><td><b>${esc(w)}</b></td><td>${b.tries}</td><td>${b.wins}</td><td>${b.first}</td><td>${b.miss&&b.heard?esc(b.heard):"-"}</td><td>${arrow[trendOf(w)]}</td></tr>`).join("")}</tbody></table>`:`<div>No tries yet.</div>`;
+  const sentTab=()=>{
+    const rs=SENTENCES.map(x=>[x,state.sents[x.id]]).filter(([,b])=>b&&b.tries>0).sort((a,b)=>b[1].miss-a[1].miss||a[0].id.localeCompare(b[0].id));
+    if(!rs.length)return `<div>No sentence tries yet.</div>`;
+    return `<table class="gt" id="stable"><thead><tr><th style="width:36%">Sentence</th><th style="width:12%">Tries</th><th style="width:14%">1st try</th><th style="width:38%">Missed most</th></tr></thead><tbody>${rs.map(([x,b])=>`<tr><td><b>${esc(x.text)}</b></td><td>${b.tries}</td><td>${b.first}</td><td>${Object.entries(b.missed).sort((p,q)=>q[1]-p[1]).slice(0,3).map(([w,n])=>esc(w)+"×"+n).join(" ")||"-"}</td></tr>`).join("")}</tbody></table>`;
+  };
   panel.innerHTML=`<div style="margin-top:12px;text-align:left"><h2 style="font-size:20px">Grown-up report</h2>
   <div class="small-note" style="margin:4px 0 8px">${state.attempts.length} tries logged (last ${MAXLOG} kept). "Heard" is the best guess the recognizer made on the last miss. Trend compares the latest tries with earlier ones.</div>
-  ${rows.length?`<table class="gt"><thead><tr><th style="width:17%">Word</th><th style="width:11%">Tries</th><th style="width:11%">Wins</th><th style="width:13%">1st try</th><th style="width:27%">Heard (miss)</th><th style="width:21%">Trend</th></tr></thead><tbody>${rows.map(([w,b])=>`<tr><td><b>${esc(w)}</b></td><td>${b.tries}</td><td>${b.wins}</td><td>${b.first}</td><td>${b.miss&&b.heard?esc(b.heard):"-"}</td><td>${arrow[trendOf(w)]}</td></tr>`).join("")}</tbody></table>`:`<div>No tries yet.</div>`}
+  <div class="row" style="margin:6px 0"><button class="btn small gold" id="tw" aria-pressed="true">Words</button><button class="btn small" id="ts" aria-pressed="false">Sentences</button></div>
+  <div id="gtab"></div>
   <div class="row" style="margin-top:14px"><button class="btn small" id="reset">Reset progress</button></div>
   <div class="small-note" id="rnote" style="text-align:center;min-height:18px" aria-live="polite">Your recorded letter sounds are not touched.</div></div>`;
+  const tab=w=>{$("gtab").innerHTML=w==="s"?sentTab():wordsTab();$("tw").classList.toggle("gold",w!=="s");$("ts").classList.toggle("gold",w==="s");$("tw").setAttribute("aria-pressed",w!=="s"?"true":"false");$("ts").setAttribute("aria-pressed",w==="s"?"true":"false")};
+  $("tw").onclick=()=>tab("w");$("ts").onclick=()=>tab("s");tab("w");
   const rb=$("reset");let armed=false,at=null;
   rb.onclick=()=>{
     if(rid!==roundId)return;
@@ -971,7 +1515,7 @@ home();
   if(Object.keys(recorded).length&&$("setup")&&$("test"))home(); // refresh the (n/26) count if still on the home screen
 })();
 window.__A=A;
-window.__dbg={get state(){return state},M,get LIS(){return LIS},get roundId(){return roundId},matches,norm,cleanState,CATALOG};
+window.__dbg={alignSentence,evalSentence,SENTENCES,SIGHT,sentUnlocked,pickSentences,missingWords,readCount,get prefs(){return prefs},cleanPrefs,BUNDLE,VOICE_IDS,sources,rawClip,get state(){return state},M,get LIS(){return LIS},get roundId(){return roundId},matches,norm,cleanState,CATALOG};
 </script>
 </body>
 </html>

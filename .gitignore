@@ -3,3 +3,9 @@ tools/t/
 tools/clips/*.wav
 *.log
 .DS_Store
+# Kokoro model files (325 MB, download separately; see README) and generator intermediates
+kmodel/
+*.onnx
+voices-*.bin
+tools/clips_kokoro/
+__pycache__/

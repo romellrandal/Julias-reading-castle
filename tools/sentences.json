@@ -1,0 +1,218 @@
+[
+ {
+  "id": "s01",
+  "text": "I SEE SAM.",
+  "emoji": "👀👦",
+  "level": 3
+ },
+ {
+  "id": "s02",
+  "text": "THE CAT SAT.",
+  "emoji": "🐱🪑",
+  "level": 3
+ },
+ {
+  "id": "s03",
+  "text": "A RED HAT.",
+  "emoji": "🎩",
+  "level": 3
+ },
+ {
+  "id": "s04",
+  "text": "A BIG PIG.",
+  "emoji": "🐷",
+  "level": 3
+ },
+ {
+  "id": "s05",
+  "text": "SAM IS MAD.",
+  "emoji": "😠",
+  "level": 3
+ },
+ {
+  "id": "s06",
+  "text": "I SEE TOM.",
+  "emoji": "👀👦",
+  "level": 3
+ },
+ {
+  "id": "s07",
+  "text": "A HOT POT.",
+  "emoji": "🍲",
+  "level": 3
+ },
+ {
+  "id": "s08",
+  "text": "TOM CAN RUN.",
+  "emoji": "🏃",
+  "level": 3
+ },
+ {
+  "id": "s09",
+  "text": "I CAN HOP.",
+  "emoji": "🐸",
+  "level": 3
+ },
+ {
+  "id": "s10",
+  "text": "A BIG BUS.",
+  "emoji": "🚌",
+  "level": 3
+ },
+ {
+  "id": "s11",
+  "text": "THE RAM SAT.",
+  "emoji": "🐏",
+  "level": 3
+ },
+ {
+  "id": "s12",
+  "text": "A WET DOG.",
+  "emoji": "🐶💦",
+  "level": 3
+ },
+ {
+  "id": "s13",
+  "text": "I SEE THE SUN.",
+  "emoji": "☀️👀",
+  "level": 4
+ },
+ {
+  "id": "s14",
+  "text": "THE PIG IS BIG.",
+  "emoji": "🐷",
+  "level": 4
+ },
+ {
+  "id": "s15",
+  "text": "SAM IS A KID.",
+  "emoji": "🧒",
+  "level": 4
+ },
+ {
+  "id": "s16",
+  "text": "I SEE A DOG.",
+  "emoji": "🐶👀",
+  "level": 4
+ },
+ {
+  "id": "s17",
+  "text": "THE CAT IS RED.",
+  "emoji": "🐱🔴",
+  "level": 4
+ },
+ {
+  "id": "s18",
+  "text": "TOM HIT THE NET.",
+  "emoji": "🥅",
+  "level": 4
+ },
+ {
+  "id": "s19",
+  "text": "THE BUG IS WET.",
+  "emoji": "🐛💧",
+  "level": 4
+ },
+ {
+  "id": "s20",
+  "text": "I SEE A FOX.",
+  "emoji": "🦊👀",
+  "level": 4
+ },
+ {
+  "id": "s21",
+  "text": "THE HEN IS RED.",
+  "emoji": "🐔",
+  "level": 4
+ },
+ {
+  "id": "s22",
+  "text": "A DOG CAN RUN.",
+  "emoji": "🐕💨",
+  "level": 4
+ },
+ {
+  "id": "s23",
+  "text": "THE CUP IS HOT.",
+  "emoji": "☕🔥",
+  "level": 4
+ },
+ {
+  "id": "s24",
+  "text": "THE BED IS BIG.",
+  "emoji": "🛏️",
+  "level": 4
+ },
+ {
+  "id": "s25",
+  "text": "I SEE THE RED HAT.",
+  "emoji": "🎩👀",
+  "level": 5
+ },
+ {
+  "id": "s26",
+  "text": "THE BIG PIG IS WET.",
+  "emoji": "🐷💦",
+  "level": 5
+ },
+ {
+  "id": "s27",
+  "text": "SAM CAN HIT THE NET.",
+  "emoji": "🥅⚽",
+  "level": 5
+ },
+ {
+  "id": "s28",
+  "text": "I SEE A BIG BUS.",
+  "emoji": "🚌👀",
+  "level": 5
+ },
+ {
+  "id": "s29",
+  "text": "I SEE THE BIG DOG.",
+  "emoji": "🐶👀",
+  "level": 5
+ },
+ {
+  "id": "s30",
+  "text": "THE HOT SUN IS BIG.",
+  "emoji": "☀️",
+  "level": 5
+ },
+ {
+  "id": "s31",
+  "text": "I SEE A RED JET.",
+  "emoji": "✈️👀",
+  "level": 5
+ },
+ {
+  "id": "s32",
+  "text": "SAM IS A BIG KID.",
+  "emoji": "🧒",
+  "level": 5
+ },
+ {
+  "id": "s33",
+  "text": "I SEE A WET PIG.",
+  "emoji": "🐷💦",
+  "level": 5
+ },
+ {
+  "id": "s34",
+  "text": "I SEE THE WET MUD.",
+  "emoji": "🌧️👀",
+  "level": 5
+ },
+ {
+  "id": "s35",
+  "text": "THE BIG FOX CAN RUN.",
+  "emoji": "🦊💨",
+  "level": 5
+ },
+ {
+  "id": "s36",
+  "text": "DAD CAN SEE THE SUN.",
+  "emoji": "👨☀️",
+  "level": 5
+ }
+]

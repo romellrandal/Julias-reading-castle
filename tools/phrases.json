@@ -1,0 +1,275 @@
+{
+ "_comment": "Clip manifest for tools/gen_kokoro.py. id -> text. Prefix L=letter sound (ph = IPA phonemes), W=word, P=phrase, S=sentence (not used by the game yet). Add an entry here and re-run gen_kokoro.py; build.py checks every id exists in every voice pack. A value can be a plain string or an object {text|ph, speed, raw}.",
+ "voices": [
+  {
+   "id": "af_heart",
+   "name": "Heart",
+   "blurb": "Warm and friendly"
+  },
+  {
+   "id": "af_nicole",
+   "name": "Nicole",
+   "blurb": "Soft and calm"
+  },
+  {
+   "id": "af_sarah",
+   "name": "Sarah",
+   "blurb": "Bright and clear"
+  }
+ ],
+ "defaults": {
+  "W": {
+   "speed": 0.9
+  },
+  "P": {
+   "speed": 0.95
+  },
+  "S": {
+   "speed": 0.9
+  }
+ },
+ "letters": {
+  "LA": {
+   "ph": "æ",
+   "kind": "vowel"
+  },
+  "LB": {
+   "ph": "b",
+   "kind": "stop"
+  },
+  "LC": {
+   "kind": "copy",
+   "from": "LK"
+  },
+  "LD": {
+   "ph": "d",
+   "kind": "stop"
+  },
+  "LE": {
+   "ph": "ɛ",
+   "kind": "vowel"
+  },
+  "LF": {
+   "ph": "f",
+   "kind": "fric"
+  },
+  "LG": {
+   "ph": "ɡ",
+   "kind": "stop"
+  },
+  "LH": {
+   "ph": "h",
+   "kind": "stop"
+  },
+  "LI": {
+   "ph": "ɪ",
+   "kind": "vowel"
+  },
+  "LJ": {
+   "ph": "ʤ",
+   "kind": "stop"
+  },
+  "LK": {
+   "ph": "k",
+   "kind": "stop"
+  },
+  "LL": {
+   "ph": "l",
+   "kind": "sonorant"
+  },
+  "LM": {
+   "ph": "m",
+   "kind": "sonorant"
+  },
+  "LN": {
+   "ph": "n",
+   "kind": "sonorant"
+  },
+  "LO": {
+   "ph": "ɑ",
+   "kind": "vowel"
+  },
+  "LP": {
+   "ph": "p",
+   "kind": "stop"
+  },
+  "LQ": {
+   "kind": "seq",
+   "parts": [
+    [
+     "LK",
+     null
+    ],
+    [
+     "LW",
+     0.22
+    ]
+   ]
+  },
+  "LR": {
+   "ph": "ɹ",
+   "kind": "sonorant"
+  },
+  "LS": {
+   "ph": "s",
+   "kind": "fric"
+  },
+  "LT": {
+   "ph": "t",
+   "kind": "stop"
+  },
+  "LU": {
+   "ph": "ʌ",
+   "kind": "vowel"
+  },
+  "LV": {
+   "ph": "v",
+   "kind": "fric"
+  },
+  "LW": {
+   "ph": "w",
+   "kind": "glide"
+  },
+  "LX": {
+   "kind": "seq",
+   "parts": [
+    [
+     "LK",
+     null
+    ],
+    [
+     "LS",
+     0.25
+    ]
+   ]
+  },
+  "LY": {
+   "ph": "j",
+   "kind": "glide"
+  },
+  "LZ": {
+   "ph": "z",
+   "kind": "fric"
+  }
+ },
+ "words": {
+  "WBAG": "bag",
+  "WBED": "bed",
+  "WBIG": "big",
+  "WBOX": "box",
+  "WBUG": "bug",
+  "WBUS": "bus",
+  "WCAN": "can",
+  "WCAT": "cat",
+  "WCUP": "cup",
+  "WDAD": "dad",
+  "WDIG": "dig",
+  "WDOG": "dog",
+  "WFOX": "fox",
+  "WFUN": "fun",
+  "WHAT": "hat",
+  "WHEN": "hen",
+  "WHIT": "hit",
+  "WHOP": "hop",
+  "WHOT": "hot",
+  "WJET": "jet",
+  "WJUG": "jug",
+  "WKID": "kid",
+  "WLEG": "leg",
+  "WLIP": "lip",
+  "WMAD": "mad",
+  "WMAP": "map",
+  "WMAT": "mat",
+  "WMOP": "mop",
+  "WMUD": "mud",
+  "WNET": "net",
+  "WNUT": "nut",
+  "WPAN": "pan",
+  "WPEN": "pen",
+  "WPIG": "pig",
+  "WPIN": "pin",
+  "WPOT": "pot",
+  "WRAM": "ram",
+  "WRED": "red",
+  "WRUN": "run",
+  "WSAM": "Sam",
+  "WSAT": "sat",
+  "WSIT": "sit",
+  "WSUN": "sun",
+  "WTEN": "ten",
+  "WTOM": "Tom",
+  "WTOP": "top",
+  "WWET": "wet",
+  "WZIP": "zip",
+  "WJULIA": "Julia",
+  "WI": "I",
+  "WA": "A",
+  "WIS": "is",
+  "WTHE": "the",
+  "WSEE": "see"
+ },
+ "phrases": {
+  "Ppraise0": "Great reading, Julia!",
+  "Ppraise1": "You did it, Princess!",
+  "Ppraise2": "Royal reader!",
+  "Ppraise3": "Brilliant, Julia!",
+  "Ppraise4": "Hooray!",
+  "Ppraise5": "Super star, Julia!",
+  "Ppraise6": "Magnificent, Princess Julia!",
+  "Ppraise7": "Wonderful reading, Julia!",
+  "Pdone": "Well done, Princess Julia! You earned a sticker!",
+  "Phello": "Hello, Julia!",
+  "Psay": "Say the word!",
+  "Pnohear": "I didn't hear you. Tap and try again!",
+  "Ptryagain": "Hmm, let's try again!",
+  "Psoundout": "Let's sound it out together.",
+  "Pnowyou": "Now you say it!",
+  "Plisten": "Listen.",
+  "Ppractice": "Great practice, Julia!",
+  "Pcomeback": "You got a comeback crown!",
+  "Proom": "A new room in your castle!",
+  "Psread": "Read the sentence!",
+  "Pall": "Now read it all together!",
+  "Psentpraise": "Great sentence reading, Julia!",
+  "Pstar": "You earned a Sentence Star!",
+  "Ppuzzle": "A puzzle word! Can you say it?"
+ },
+ "sentences": {
+  "Ss01": "I see Sam.",
+  "Ss02": "the cat sat.",
+  "Ss03": "a red hat.",
+  "Ss04": "a big pig.",
+  "Ss05": "Sam is mad.",
+  "Ss06": "I see Tom.",
+  "Ss07": "a hot pot.",
+  "Ss08": "Tom can run.",
+  "Ss09": "I can hop.",
+  "Ss10": "a big bus.",
+  "Ss11": "the ram sat.",
+  "Ss12": "a wet dog.",
+  "Ss13": "I see the sun.",
+  "Ss14": "the pig is big.",
+  "Ss15": "Sam is a kid.",
+  "Ss16": "I see a dog.",
+  "Ss17": "the cat is red.",
+  "Ss18": "Tom hit the net.",
+  "Ss19": "the bug is wet.",
+  "Ss20": "I see a fox.",
+  "Ss21": "the hen is red.",
+  "Ss22": "a dog can run.",
+  "Ss23": "the cup is hot.",
+  "Ss24": "the bed is big.",
+  "Ss25": "I see the red hat.",
+  "Ss26": "the big pig is wet.",
+  "Ss27": "Sam can hit the net.",
+  "Ss28": "I see a big bus.",
+  "Ss29": "I see the big dog.",
+  "Ss30": "the hot sun is big.",
+  "Ss31": "I see a red jet.",
+  "Ss32": "Sam is a big kid.",
+  "Ss33": "I see a wet pig.",
+  "Ss34": "I see the wet mud.",
+  "Ss35": "the big fox can run.",
+  "Ss36": "dad can see the sun."
+ }
+}
