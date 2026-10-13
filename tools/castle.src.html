@@ -8,25 +8,25 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
 <style>
 /* single-look by choice: pastel princess castle */
-:root{color-scheme:light;--bg:#fff0f8;--pink:#ff7eb6;--deep:#c2185b;--gold:#ffc83d;--cons:#1e66f5;--vowel:#e0245e;--ink:#3b1d3f;--violet:#7c3aed}
+:root{color-scheme:light;--bg:#fff0f8;--pink:#ff7eb6;--deep:#c2185b;--btn:#d81b7a;--btnsh:#9c1050;--grn:#17803f;--grnsh:#0d5a2a;--gold:#ffc83d;--cons:#1e66f5;--vowel:#e0245e;--ink:#3b1d3f;--violet:#7c3aed}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html,body{margin:0;min-height:100%;background:#f6dcf2;background:linear-gradient(#ffe1f1,#e9d5ff);font-family:"Comic Sans MS","Chalkboard SE",system-ui,sans-serif;color:var(--ink);touch-action:manipulation;overflow-x:hidden}
 #app{max-width:760px;margin:0 auto;min-height:100%;padding:16px;display:flex;flex-direction:column;gap:14px}
 h1{margin:0;text-align:center;font-size:clamp(24px,6vw,40px);color:var(--deep);overflow-wrap:anywhere}
 h2{margin:0;font-size:24px;color:var(--deep);overflow-wrap:anywhere}
 .bar{display:flex;justify-content:space-between;align-items:center;font-size:24px;gap:8px}
-.btn{border:0;border-radius:24px;padding:16px 26px;min-height:56px;font:inherit;font-size:24px;font-weight:700;background:var(--pink);color:#fff;box-shadow:0 5px 0 var(--deep);cursor:pointer;touch-action:manipulation}
-.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--deep)}
-.btn:disabled{opacity:.55}
+.btn{border:0;border-radius:24px;padding:16px 26px;min-height:56px;font:inherit;font-size:24px;font-weight:700;background:var(--btn);color:#fff;box-shadow:0 5px 0 var(--btnsh);cursor:pointer;touch-action:manipulation}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--btnsh)}
+.btn:disabled{opacity:.8}
 .btn.gold{background:var(--gold);color:var(--ink);box-shadow:0 5px 0 #c99500}
-.btn.green{background:#2fbf71;box-shadow:0 5px 0 #1b8a4f}
+.btn.green{background:var(--grn);box-shadow:0 5px 0 var(--grnsh)}
 .btn.violet{background:var(--violet);box-shadow:0 5px 0 #4c1d95}
 .btn.small{font-size:16px;padding:10px 14px;min-height:48px;border-radius:14px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px}
 .card{background:#fff;border-radius:28px;padding:20px;box-shadow:0 8px 0 #e3b5d6;text-align:center}
 .wordcard{padding:22px 8px;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;position:relative}
 .letters{display:flex;gap:clamp(4px,1.6vw,10px);justify-content:center;width:100%;padding:0 4px}
-.L{--n:3;flex:1 1 0;min-width:0;max-width:130px;height:clamp(100px,26vw,150px);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:min(110px,calc(66vw / var(--n)));font-weight:800;color:#fff;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.25);transition:transform .08s}
+.L{--n:3;flex:1 1 0;min-width:0;max-width:130px;height:clamp(100px,26vw,150px);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:min(96px,calc(66vw / var(--n)));line-height:1;font-weight:800;color:#fff;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.25);transition:transform .08s}
 .L.c{background:var(--cons)}.L.v{background:var(--vowel)}
 .L.lit{transform:scale(1.12);filter:brightness(1.25);outline:6px solid var(--gold)}
 .pic{font-size:80px;height:90px;line-height:90px}
@@ -38,7 +38,7 @@ h2{margin:0;font-size:24px;color:var(--deep);overflow-wrap:anywhere}
 .big{font-size:72px}
 .rec{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
 .rec .btn{font-size:20px;padding:10px;min-height:64px}
-.rec .btn.has{background:#2fbf71;box-shadow:0 5px 0 #1b8a4f}
+.rec .btn.has{background:var(--grn);box-shadow:0 5px 0 var(--grnsh)}
 .rec .btn.live{background:#e11d48;animation:p 1s infinite}
 @keyframes p{50%{opacity:.6}}
 .pop{animation:pop .5s}
@@ -104,8 +104,15 @@ table.gt th{font-size:12px;color:var(--deep)}
 .holdbtn i{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(124,58,237,.35);pointer-events:none}
 .holdbtn.holding i{width:100%;transition:width 2s linear}
 @media (max-height:520px) and (orientation:landscape){
-  #app{padding:10px;gap:8px}.wordcard{min-height:0;padding:8px}.pic{font-size:50px;height:56px;line-height:56px}
-  .L{height:84px}.mic{width:96px;height:96px;font-size:44px}
+  #app{padding:8px 12px;gap:6px}.wordcard{min-height:0;padding:8px;gap:8px}.pic{font-size:44px;height:48px;line-height:48px}
+  .L{height:72px;font-size:min(56px,calc(40vw / var(--n)))}.mic{width:96px;height:96px;font-size:44px}
+  .hint{font-size:17px;min-height:22px}.miclab{font-size:18px;min-height:24px}.progress{height:10px}
+  .SW{min-height:48px;font-size:28px;padding:4px 10px}.sent{gap:8px;padding:2px 0}
+  /* word / sentence rounds: card on the left, mic + feedback in a right column so the mic is always on screen */
+  #app:has(>#wc){display:grid;grid-template-columns:minmax(0,1fr) 190px;grid-template-rows:repeat(7,auto) 1fr;column-gap:12px;row-gap:6px;align-content:start;align-items:start}
+  #app:has(>#wc)>.bar,#app:has(>#wc)>.progress{grid-column:1/-1}
+  #app:has(>#wc)>#wc{grid-column:1;grid-row:3/9}
+  #app:has(>#wc)>#micwrap,#app:has(>#wc)>#fb,#app:has(>#wc)>#why,#app:has(>#wc)>#extra{grid-column:2}
 }
 @media (prefers-reduced-motion:reduce){.mic.nudge,.mic.listening::before,.mic.listening::after,.pop{animation:none}}
 </style>
@@ -129,7 +136,7 @@ const ALL_WORDS = [...new Set(Object.values(FAMILIES).flatMap(f=>f.words))];
 const SIGHT = ["I","A","IS","THE","SEE"];
 const SIGHT_SET = new Set(SIGHT);
 // Accepted spoken forms for puzzle words. Lenient on purpose: they are recorded but never cause a ladder step on their own.
-const SIGHT_ALIAS = {I:["i","eye","ay","1"],A:["a","uh","ay","eh","8"],IS:["is","its"],THE:["the","thee","da","a"],SEE:["see","sea","c"]};
+const SIGHT_ALIAS = {I:["i","eye","aye","ay","ai","1"],A:["a","ah","uh","eh","ay","8"],IS:["is","its","iz"],THE:["the","thee","thuh","duh","da","a"],SEE:["see","sea","c","cee"]};
 // sentences (tools/sentences.json -> build.py): {id,text,emoji,level}; words = the distinct words of the sentence
 const SENTENCES = (__SENTENCES__).map(x=>({id:String(x.id),text:String(x.text),emoji:String(x.emoji),level:+x.level,
   words:String(x.text).match(/[A-Z]+/g)||[]})).filter(x=>x.words.length>=2);
@@ -150,7 +157,7 @@ const PHRASE = { // Pxxx clips and the robot-voice text used only if a clip cann
 };
 // Spoken-answer aliases. A recognizer may return digits for a spoken number word, so TEN also accepts "10".
 // Deliberately NOTHING else (no near-homophones, no one-letter slips: "sit" for SAT is a miss by design).
-const ALIASES = { TEN:["10"] };
+const ALIASES = { TEN:["10"], JULIA:["julie","yulia","hulia"] };
 // Stickers / castle rooms. Unlock rules are checked by checkUnlocks(); locked ones show as silhouettes.
 const CATALOG = [
   {id:"r1",  e:"🎀",name:"Sticker Bow",     need:"Finish 1 round",     ok:s=>s.stickers>=1},
@@ -549,7 +556,7 @@ function norm(s){
 // RIGHT = any of the alternatives, normalized, equals the target (or a digit alias), or contains it as one whole token
 // ("the sun", "sun sun", "Sun." pass; "sit" for SAT, "suns", "sunny" do not). Returns the matching alternative or null.
 function matches(word,alts){
-  const ok=new Set([word.toLowerCase(),...(ALIASES[word]||[])]);
+  const ok=new Set([word.toLowerCase(),...((SIGHT_SET.has(word)?SIGHT_ALIAS[word]:ALIASES[word])||[])]);
   for(const a of alts||[]){
     const n=norm(a); if(!n)continue;
     if(ok.has(n))return a;
@@ -564,13 +571,15 @@ const MAXTOK = 80;
 function alignSentence(words, toks){
   const n=words.length, m=Math.min(toks.length,MAXTOK);
   const ok=(w,t)=>{const lw=w.toLowerCase();return t===lw||((SIGHT_SET.has(w)?SIGHT_ALIAS[w]:ALIASES[w])||[]).includes(t)};
+  // weighted LCS: a reading (CVC, strict) word counts 100, a puzzle word 1, so on ties the strict word wins ("is sam mad")
+  const wt=w=>SIGHT_SET.has(w)?1:100;
   const d=Array.from({length:n+1},()=>new Array(m+1).fill(0));
   for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)
-    d[i][j]=ok(words[i],toks[j])?d[i+1][j+1]+1:Math.max(d[i+1][j],d[i][j+1]);
+    d[i][j]=ok(words[i],toks[j])?d[i+1][j+1]+wt(words[i]):Math.max(d[i+1][j],d[i][j+1]);
   const got=new Array(n).fill(false);
   let i=0,j=0;
   while(i<n&&j<m){
-    if(ok(words[i],toks[j])&&d[i][j]===d[i+1][j+1]+1){got[i]=true;i++;j++}
+    if(ok(words[i],toks[j])&&d[i][j]===d[i+1][j+1]+wt(words[i])){got[i]=true;i++;j++}
     else if(d[i+1][j]>=d[i][j+1])i++;
     else j++;
   }
@@ -1287,6 +1296,7 @@ function playSentences(){
       setPhase("idle");
       if(res.t==="error"){
         const e=classifyErr(res.code);
+        if(card.practice){if(e.fatal)noteFallback(e.reason);return practiceDone("","")}
         if(e.fatal)return enterFallback(e.reason);
         setHint(e.kid);showWhy("Grown-up: "+e.parent);nudge();sayP("nohear",stopAll());return;
       }

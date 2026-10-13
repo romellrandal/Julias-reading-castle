@@ -1661,6 +1661,169 @@ T('voice-full-round-ladder-nondefault-voice',async()=>{
   await h.close();
 },{slow:true});
 
+
+// ====================== validator fixes (aliases, tie-break, contrast, landscape, soft error in practice) ======================
+T('fix-puzzle-word-aliases-and-name',async()=>{
+  const h=await open();
+  const r=await h.ev(()=>{const m=(w,a)=>!!__dbg.matches(w,a);return {
+    eyeI:m('I',['eye']),iI:m('I',['i']),ayeI:m('I',['aye']),seeSea:m('SEE',['sea']),aEh:m('A',['eh']),aAh:m('A',['ah']),theThee:m('THE',['thee']),isIts:m('IS',['its']),
+    iBlah:m('I',['blah']),seeBlah:m('SEE',['sit']),aSun:m('A',['sun']),
+    julie:m('JULIA',['Julie']),julia:m('JULIA',['julia']),yulia:m('JULIA',['yulia']),julio:m('JULIA',['julio']),jul:m('JULIA',['jul']),
+    sit:m('SAT',['sit']),ten:m('TEN',['10']),sam:m('SAM',['sim']),eyeCvc:m('SUN',['eye']),sea:m('SAT',['sea']),itsCvc:m('SIT',['its'])}});
+  for(const k of ['eyeI','iI','ayeI','seeSea','aEh','aAh','theThee','isIts','julie','julia','yulia','ten'])ok(r[k]===true,'accepted: '+k);
+  for(const k of ['iBlah','seeBlah','aSun','julio','jul','sit','sam','eyeCvc','sea','itsCvc'])ok(r[k]===false,'still strict: '+k);
+  // the puzzle-words round itself: every card accepts its alias on the first try
+  const alias={I:'eye',A:'eh',IS:'its',THE:'thee',SEE:'sea'};
+  await h.tap('#puzzle');await h.page.waitForSelector('#mic');
+  for(let n=1;n<=3;n++){
+    const w=await h.word();await h.page.waitForTimeout(500);
+    await h.q({type:'result',alts:[alias[w]]});await h.mic();
+    await h.wf(([n])=>__dbg.state.stars>=n,[n],12000);
+    const st=await h.st();
+    ok(st.words[w]&&st.words[w].wins===1&&st.words[w].first===1&&st.attempts.filter(a=>a.ok).length===n,'puzzle card '+w+' said as "'+alias[w]+'" counts as right first try');
+    if(n<3)await h.wf(([n])=>document.querySelector('.bar div:nth-child(2)')&&document.querySelector('.bar div:nth-child(2)').textContent.startsWith((n+1)+' /'),[n],15000);
+    await h.page.waitForTimeout(400);
+  }
+  ok((await h.st()).attempts.every(a=>a.ok),'no miss, no say-it-for-her step');
+  await h.close();
+},{slow:true});
+
+T('fix-align-strict-wins-ties',async()=>{
+  const h=await open();
+  const r=await h.ev(()=>{
+    const A=(w,t)=>__dbg.alignSentence(w,t).join();
+    return {
+      samIsMad:A(['SAM','IS','MAD'],['is','sam','mad']),
+      thePig:A(['THE','PIG','IS','BIG'],['the','is','pig','big']),
+      samIsAKid:A(['SAM','IS','A','KID'],['is','sam','a','kid']),
+      inOrder:A(['SAM','IS','MAD'],['sam','is','mad']),
+      sightOnly:A(['THE','CAT','SAT'],['the','sat']),
+      mad:__dbg.evalSentence({text:'SAM IS MAD'},['is sam mad']),
+      cvcStrict:A(['SAM'],['sim']),
+    }});
+  ok(r.samIsMad==='true,false,true','"is sam mad" for SAM IS MAD: SAM and MAD got (puzzle word loses the tie): '+r.samIsMad);
+  ok(r.thePig==='false,true,false,true'||r.thePig==='true,true,false,true'||r.thePig.split(',')[1]==='true','THE PIG IS BIG "the is pig big": PIG got: '+r.thePig);
+  ok(r.samIsAKid.split(',')[0]==='true'&&r.samIsAKid.split(',')[3]==='true','SAM IS A KID "is sam a kid": SAM and KID got: '+r.samIsAKid);
+  ok(r.inOrder==='true,true,true','in-order reading still all got');
+  ok(r.sightOnly==='true,false,true','puzzle words still aligned normally');
+  ok(r.mad.right===true&&r.mad.decGot===2,'evalSentence: "is sam mad" is a right read');
+  ok(r.cvcStrict==='false','CVC words stay strict');
+  // differential oracle: over every sentence, with drops / swaps / extras / repeats, the reading-word count never goes down vs. a plain LCS
+  const o=await h.ev(()=>{
+    const SG=new Set(__dbg.SIGHT);let seed=7;const rnd=n=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed%n};
+    const lcs=(W,T)=>{ // oracle: best number of reading words in any order-preserving alignment (puzzle words may be skipped freely)
+      const n=W.length,m=T.length;const d=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+      for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--){const hit=!SG.has(W[i])&&W[i].toLowerCase()===T[j];d[i][j]=hit?d[i+1][j+1]+1:Math.max(d[i+1][j],d[i][j+1])}
+      return d[0][0]};
+    let n=0,bad=[];
+    for(const s of __dbg.SENTENCES){const W=s.words,base=W.map(w=>w.toLowerCase());
+      const vs=[base];for(let i=0;i+1<base.length;i++){const t=base.slice();[t[i],t[i+1]]=[t[i+1],t[i]];vs.push(t)}
+      for(let k=0;k<20;k++){const t=base.slice(),op=rnd(5);
+        if(op===0)t.splice(rnd(t.length),1);else if(op===1)t[rnd(t.length)]=['um','dog','is','the'][rnd(4)];
+        else if(op===2)t.splice(rnd(t.length+1),0,['um','eye','is','a'][rnd(4)]);else if(op===3){const i=rnd(t.length);t.splice(i,0,t[i])}
+        else{const i=rnd(t.length),j=rnd(t.length);[t[i],t[j]]=[t[j],t[i]]}
+        vs.push(t)}
+      for(const t of vs){n++;const got=__dbg.alignSentence(W,t);const dg=got.filter((x,k)=>x&&!SG.has(W[k])).length;
+        if(dg!==lcs(W,t))bad.push(W.join(' ')+' | '+t.join(' '))}}
+    return {n,bad:bad.slice(0,3),nbad:bad.length}});
+  ok(o.n>500&&o.nbad===0,'oracle: reading words got == best possible over '+o.n+' transcripts '+JSON.stringify(o.bad));
+  await h.close();
+});
+
+T('fix-button-contrast',async()=>{
+  const h=await open();
+  const r=await h.ev(()=>{
+    const lum=c=>{const v=c.map(x=>{x/=255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)});return .2126*v[0]+.7152*v[1]+.0722*v[2]};
+    const rgb=s=>s.match(/[\d.]+/g).map(Number);
+    const cr=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+    const host=document.createElement('div');host.id='cthost';host.style.cssText='position:fixed;left:0;top:0;background:#fff';document.body.appendChild(host);
+    const out=[];
+    const variants=[['btn',''],['btn gold',''],['btn green',''],['btn violet',''],['btn small',''],['btn small gold',''],['btn small green',''],['btn small violet',''],['btn small','pressed'],['btn small gold','pressed'],['btn','disabled'],['btn green','disabled'],['btn small','disabled']];
+    const mk=(cls,st,parentCls)=>{const p=document.createElement('div');if(parentCls)p.className=parentCls;const b=document.createElement('button');b.className=cls;b.textContent='Ab';if(st==='disabled'||st==='dis2')b.disabled=true;if(st==='pressed')b.setAttribute('aria-pressed','true');p.appendChild(b);host.appendChild(p);return b};
+    const meas=(b,label)=>{const cs=getComputedStyle(b);const fg=rgb(cs.color),bg=rgb(cs.backgroundColor);const op=+cs.opacity;
+      const page=[255,255,255];const eff=bg.slice(0,3).map((v,i)=>v*op+page[i]*(1-op)),fge=fg.slice(0,3).map((v,i)=>v*op+page[i]*(1-op));
+      out.push({label,ratio:cr(fge,eff),disabled:b.disabled})};
+    for(const [c,s] of variants)meas(mk(c,s),c+' '+s);
+    meas(mk('btn','','rec'),'rec btn');meas(mk('btn has','','rec'),'rec btn.has');meas(mk('btn live','','rec'),'rec btn.live');
+    meas(mk('btn small','','seg'),'seg btn (not pressed)');meas(mk('btn small','pressed','seg'),'seg btn pressed');
+    return out;});
+  for(const x of r)ok(x.ratio>=(x.disabled?3:4.5),'contrast '+x.label+' = '+x.ratio.toFixed(2)+(x.disabled?' (disabled, >=3)':' (>=4.5)'));
+  // real buttons on the real screens
+  const real=async()=>h.ev(()=>{const lum=c=>{const v=c.map(x=>{x/=255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)});return .2126*v[0]+.7152*v[1]+.0722*v[2]};
+    const rgb=s=>s.match(/[\d.]+/g).map(Number);const bad=[];
+    document.querySelectorAll('.btn').forEach(b=>{if(b.closest('#cthost')||b.disabled)return;const cs=getComputedStyle(b);if(+cs.opacity<1)return;const f=rgb(cs.color),g=rgb(cs.backgroundColor);if(g[3]===0)return;const a=lum(f),c=lum(g);const q=(Math.max(a,c)+.05)/(Math.min(a,c)+.05);if(q<4.5)bad.push((b.id||b.textContent.slice(0,10))+' '+q.toFixed(2))});return bad});
+  await h.page.evaluate(()=>document.getElementById('cthost').remove());
+  ok((await real()).length===0,'home buttons all >=4.5 '+JSON.stringify(await real()));
+  await h.tap('#voice');await h.page.waitForTimeout(300);ok((await real()).length===0,'voice picker buttons >=4.5');await h.back();
+  await h.tap('#setup');await h.page.waitForTimeout(300);ok((await real()).length===0,'recorder buttons >=4.5');await h.back();
+  await h.play();ok((await real()).length===0,'word round buttons >=4.5');
+  await h.close();
+});
+
+const LAND=[['568x320',{width:568,height:320}],['640x360',{width:640,height:360}],['731x411',{width:731,height:411}],['851x393',{width:851,height:393}]];
+const landMetrics=h=>h.ev(()=>{const vh=innerHeight,vw=innerWidth,m=document.getElementById('mic').getBoundingClientRect(),o={};
+  o.micIn=m.top>=0&&m.bottom<=vh&&m.left>=0&&m.right<=vw;o.micTop=Math.round(m.top);o.micBottom=Math.round(m.bottom);o.vh=vh;
+  o.hs=document.documentElement.scrollWidth>vw;
+  const wc=document.getElementById('wc');o.cardClip=wc.scrollHeight>wc.clientHeight+1;o.cardIn=wc.getBoundingClientRect().right<=vw+0.5;
+  o.tileClip=[...document.querySelectorAll('.L')].filter(e=>e.scrollHeight>e.clientHeight+1).length;
+  o.tileShort=[...document.querySelectorAll('.L')].filter(e=>{const fs=parseFloat(getComputedStyle(e).fontSize),lh=parseFloat(getComputedStyle(e).lineHeight);return e.clientHeight<(isNaN(lh)?fs*1.2:lh)-0.5}).length;
+  o.sw=[...document.querySelectorAll('.SW')].filter(e=>{const q=e.getBoundingClientRect();return q.right>vw||q.left<0||e.scrollWidth>e.clientWidth+1}).length;
+  o.small=[...document.querySelectorAll('button')].filter(b=>{const q=b.getBoundingClientRect();return q.width>0&&(q.height<47.5||q.width<47.5)}).length;
+  o.btnOut=[...document.querySelectorAll('button,.L')].filter(b=>{const q=b.getBoundingClientRect();return q.width>0&&(q.right>vw+.5||q.left<-.5)}).length;
+  return o});
+T('fix-landscape-phone-layouts',async()=>{
+  for(const [name,vp] of LAND){
+    // word round, then the ladder (first miss) with a 5-letter-ish name excluded: 3-letter word
+    let h=await open({viewport:vp});await h.play();
+    let m=await landMetrics(h);
+    ok(m.micIn,name+' word: mic fully visible without scrolling ('+m.micTop+'..'+m.micBottom+' of '+m.vh+')');
+    ok(!m.hs&&!m.cardClip&&m.tileClip===0&&m.tileShort===0&&m.btnOut===0,name+' word: no h-scroll, card/tiles not clipped, tile >= glyph line '+JSON.stringify(m));
+    await h.page.waitForTimeout(500);await h.q({type:'result',alts:['zzz']});await h.mic();await h.wf(()=>__dbg.state.attempts.length===1);await h.page.waitForTimeout(1200);
+    m=await landMetrics(h);ok(m.micIn&&!m.hs&&!m.cardClip&&m.tileClip===0,name+' word ladder step 1: mic still visible, nothing clipped '+JSON.stringify(m));
+    await h.close();
+    // puzzle round
+    h=await open({viewport:vp});await h.tap('#puzzle');await h.page.waitForSelector('#mic');m=await landMetrics(h);
+    ok(m.micIn&&!m.hs&&!m.cardClip&&m.tileClip===0&&m.tileShort===0,name+' puzzle: mic visible, no clipping '+JSON.stringify(m));await h.close();
+    // sentence round, longest (5-word) sentence, then after a miss
+    h=await open({viewport:vp,seed:wonSeed(['DAD','CAN','SUN','THE','SEE'])});await startSent(h);
+    ok(await sentText(h)==='DAD CAN SEE THE SUN',name+' 5-word sentence shown');
+    m=await landMetrics(h);
+    ok(m.micIn&&!m.hs&&!m.cardClip&&m.sw===0&&m.small===0,name+' sentence: mic visible, words fit, targets >=48 '+JSON.stringify(m));
+    await h.page.waitForTimeout(500);await h.q({type:'result',alts:['dad can see the sin']});await h.mic();await h.wf(()=>__dbg.state.attempts.length===1);await h.page.waitForTimeout(1200);
+    m=await landMetrics(h);ok(m.micIn&&!m.hs&&!m.cardClip&&m.sw===0,name+' sentence after a miss: mic visible, nothing clipped '+JSON.stringify(m));
+    await h.close();
+    // parent-button fallback keeps the buttons reachable
+    h=await open({viewport:vp,nosr:true});await h.play();
+    const f=await h.ev(()=>{const b=document.getElementById('read');if(!b)return null;const q=b.getBoundingClientRect();return {in:q.top>=0&&q.bottom<=innerHeight&&q.right<=innerWidth}});
+    ok(f&&f.in,name+' parent mode: "I read it" visible without scrolling');
+    await h.close();
+  }
+},{slow:true});
+
+T('fix-sentence-soft-error-in-practice',async()=>{
+  const h=await open({seed:wonSeed(ONE27)});
+  await startSent(h);await h.page.waitForTimeout(700);
+  const bad={type:'result',alts:['sam can hat the net'],delay:60};
+  for(let k=1;k<=3;k++){await h.q(bad);await h.mic();await h.wf(([n])=>__dbg.state.attempts.length===n,[k],15000);await h.page.waitForTimeout(k===1?5000:k===2?7500:5500);await h.idle()}
+  await h.q({type:'error',code:'network'});
+  await h.mic();await h.wf(()=>__dbg.state.attempts.length===4,null,10000);
+  const st=await h.st();
+  ok(st.attempts[3].practice===true&&st.stars===0,'soft error during practice still completes the practice (logged, no star, no penalty)');
+  ok(st.sents.s27.miss===3&&st.sents.s27.tries===3,'practice not counted as a try: '+JSON.stringify(st.sents.s27));
+  await h.wf(()=>/^2 \/ 2/.test(document.querySelector('.bar div:nth-child(2)')?.textContent||''),null,12000);
+  ok(await h.vis('#mic')&&!(await h.vis('#read')),'one soft error does not switch to parent buttons: next card (the requeued copy) uses the mic');
+  await h.close();
+  // elsewhere the two-soft-errors -> parent-buttons rule is unchanged
+  const g=await open({seed:wonSeed(ONE27)});
+  await startSent(g);await g.page.waitForTimeout(700);
+  await g.q({type:'error',code:'network'},{type:'error',code:'network'});
+  await g.mic();await g.wf(()=>document.getElementById('mic').dataset.phase==='idle'&&/Oops/.test(document.getElementById('hint').textContent),null,8000);
+  ok(await g.vis('#mic'),'first soft error: retry with the mic');
+  await g.mic();await g.wf(()=>!!document.getElementById('read'),null,8000);
+  ok(await g.vis('#read'),'second soft error: parent buttons');
+  await g.close();
+},{slow:true});
+
 // ====================== runner ======================
 (async()=>{
   const sel=tests.filter(t=>!filter||filter.test(t.name));
