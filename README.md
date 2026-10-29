@@ -59,6 +59,12 @@ Angie's clips are AI-generated with xAI text-to-speech from a custom voice made 
 
 Voices: **Kokoro-82M** by hexgrad ([hexgrad/Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)), Apache-2.0, run with **kokoro-onnx** by thewh1teagle (MIT). Phonemisation by espeak-ng (GPL-3.0, used only at generation time; the shipped game contains audio, not espeak code). The generated clips are audio output of the Apache-2.0 model.
 
+## Microphone log and listening cues
+- Every mic try in the game (words, puzzle words, sentences, and the Microphone check) is logged on the phone only (`localStorage` key `jrg-miclog`, last 50). Each record has the target, the outcome (`result`, `none`, `error`, `cancelled`), up to 8 alternatives with confidence, a timeline of recognizer events in ms (`start`, `audiostart`, `soundstart`, `speechstart`, `speechend`, `soundend`, `audioend`, `nomatch`, `error:<code>`, `end`, plus our own `rec.start` and `ready`), and the audio state at the tap (was the game talking, ms since it stopped, ms the mic waited).
+- Home > **Test microphone** > **Attempt log**: Show, **Copy log** (header with browser, online state and audio state, then readable lines, then raw JSON), Clear. Nothing leaves the phone unless the grown-up copies it.
+- Cues: the hint says "Getting ready..." until Chrome reports `audiostart`, then "Go! Say the word!", the mic turns green and the phone gives a short buzz. The mic also waits until 400 ms after the game's own audio stops (`QUIET_MS`) before the recognizer opens.
+- Reading a record: no `speechstart` and `none` means Chrome heard no speech (too early, too quiet, or mic trouble). `result` with other words means the recognizer heard something else (look at the alternatives).
+
 ## Puzzle words and sentences
 - **🧩 Puzzle words** (home): flash cards for the sight words `I, A, IS, THE, SEE`. She may tap letters, but there is no sound-it-out ladder: after a miss the game says the word for her and she repeats it. Tracked with the other words (`sight: true`), shown as a separate row in My Castle.
 - **📖 Read sentences** (home): 36 sentences (12 each of 3, 4 and 5 words) made only of the game's CVC words plus the puzzle words (`tools/sentences.json`: id, text, emoji, level). A sentence unlocks when every word in it (reading words and puzzle words) has been read right at least once; locked ones are greyed ("Read more words to unlock!", with a grown-up line naming the missing words). A round is up to 5 unlocked sentences: missed-earlier first, then unread, easiest first.

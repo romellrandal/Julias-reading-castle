@@ -56,6 +56,7 @@ h2{margin:0;font-size:24px;color:var(--deep);overflow-wrap:anywhere}
 .mic.listening::before,.mic.listening::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:5px solid var(--violet);opacity:0;animation:ring 1.4s infinite}
 .mic.listening::after{animation-delay:.7s}
 @keyframes ring{0%{transform:scale(.9);opacity:.8}100%{transform:scale(1.55);opacity:0}}
+.mic.listening[data-ready="1"]{background:radial-gradient(circle at 35% 30%,#7be495,#22a050 60%,#146c34);box-shadow:0 8px 0 #0d4a24}
 .mic.thinking{opacity:.6}
 .mic[data-phase=feedback]{opacity:.4}
 .miclab{font-size:22px;font-weight:700;color:var(--deep);min-height:30px;text-align:center}
@@ -346,7 +347,7 @@ let LIS=null; // active speech-recognition session (see "listening" below)
 // ---------- audio ----------
 // Order of preference for every sound: 1) grown-up recording (letters only)  2) the chosen voice's clip (Kokoro) via Web Audio,
 // then <audio>; 3) the same for the next source (Classic espeak clip / the other voices; see sources())  4) speechSynthesis (last resort).
-const A={ctx:null,epoch:0,active:new Set(),cache:new Map(),started:0,ended:0,lastErr:"",mode:"",unlockedAt:0};
+const A={lastAct:0,ctx:null,epoch:0,active:new Set(),cache:new Map(),started:0,ended:0,lastErr:"",mode:"",unlockedAt:0};
 function b64ToBuf(s){const bin=atob(s),n=bin.length,u=new Uint8Array(n);for(let i=0;i<n;i++)u[i]=bin.charCodeAt(i);return u.buffer}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function showBanner(msg){const el=document.getElementById("ab");if(!el)return;el.textContent=msg;el.classList.remove("hidden")}
@@ -435,6 +436,7 @@ function preload(voice){
 }
 function stopAll(){
   A.epoch++;
+  if(A.active.size)A.lastAct=Date.now();
   for(const o of [...A.active]){try{o.stop()}catch{}}
   A.active.clear();
   try{if(window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending))speechSynthesis.cancel()}catch{}
@@ -446,7 +448,7 @@ function playHtmlAudio(url,ep,revoke,id){
     let fin=false;const h={stop(){end(true)}};
     const end=(ok)=>{if(fin)return;fin=true;clearTimeout(tm);A.active.delete(h);try{a.pause()}catch{}if(revoke)try{URL.revokeObjectURL(url)}catch{}res(ok)};
     const tm=setTimeout(()=>end(true),6000);
-    a.onended=()=>{A.ended++;end(true)};a.onerror=()=>{A.lastErr="audio element error";end(false)};
+    a.onended=()=>{A.ended++;A.lastAct=Date.now();end(true)};a.onerror=()=>{A.lastErr="audio element error";end(false)};
     A.active.add(h);
     if(ep!==A.epoch)return end(false);
     const p=a.play();
@@ -462,7 +464,7 @@ function playBuf(item,ep){
       let fin=false;const h={stop(){try{src.stop()}catch{}end()}};
       const end=()=>{if(fin)return;fin=true;clearTimeout(tm);A.active.delete(h);res(true)};
       const tm=setTimeout(end,item.dur*1000+500);
-      src.onended=()=>{A.ended++;end()};
+      src.onended=()=>{A.ended++;A.lastAct=Date.now();end()};
       A.active.add(h);
       src.start(0,item.off,item.dur);A.started++;A.mode="webaudio";A.lastClip=item.id;
     }catch(e){A.lastErr="start: "+e;res(false)}
@@ -604,6 +606,22 @@ function evalSentence(sent, alts){
   return {got:best.got,right:decGot===decTotal,decGot,decTotal,sightGot:words.filter((w,k)=>SIGHT_SET.has(w)&&best.got[k]).length,first,res,heard:best.heard,words};
 }
 function resumeAudio(){try{if(A.ctx&&A.ctx.state!=="running")A.ctx.resume().catch(()=>{})}catch{}}
+// ---------- microphone attempt log (this device only; the grown-up can copy it from Microphone check) ----------
+const MICLOG_KEY = "jrg-miclog", MICLOG_MAX = 50, QUIET_MS = 400;
+let MICLOG = [];
+try{const a=JSON.parse(localStorage.getItem(MICLOG_KEY)||"[]");if(Array.isArray(a))MICLOG=a.filter(x=>x&&typeof x==="object").slice(-MICLOG_MAX)}catch{}
+function micLogAdd(rec){
+  MICLOG.push(rec);if(MICLOG.length>MICLOG_MAX)MICLOG.splice(0,MICLOG.length-MICLOG_MAX);
+  try{localStorage.setItem(MICLOG_KEY,JSON.stringify(MICLOG))}catch{}
+}
+// Call right before stopAll(): was game audio playing, how long since it stopped, and how long the mic must wait so the
+// recognizer never starts while the game is still talking (or in the first QUIET_MS after it).
+function micPrep(){
+  const playing=A.active.size>0||!!(window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending));
+  const since=playing?0:Math.min(60000,Date.now()-(A.lastAct||0));
+  return {playing,since,quiet:Math.max(0,QUIET_MS-since)};
+}
+function readyCue(){try{if(navigator.vibrate)navigator.vibrate(35)}catch{}}
 function listen(o){
   const long=!!(o&&o.long), HARD=long?SENT_HARD_MS:HARD_MS, ABS=long?SENT_HARD_MS+8000:ABS_MS;
   return new Promise(resolve=>{
@@ -612,7 +630,15 @@ function listen(o){
     cancelListen();
     let r;
     try{r=new C()}catch{resolve({t:"error",code:"ctor"});return}
-    const s={r,done:false,timers:[],resolve,started:false,segs:[],base:0,restarts:0,t0:Date.now()};
+    const s={r,done:false,timers:[],resolve,started:false,segs:[],base:0,restarts:0,t0:Date.now(),tStart:Date.now(),ev:[],rc:[]};
+    const lg=n=>{if(s.ev.length<40)s.ev.push([n,Date.now()-s.tStart])};     // event timeline for the attempt log
+    s.logIt=res=>{ if(s.logged)return; s.logged=true;
+      const q=o&&o.pre;
+      micLogAdd({at:new Date().toISOString(),mode:(o&&o.mode)||"word",target:String((o&&o.target)||"").slice(0,60),out:res.t,
+        code:res.code||undefined,timeout:res.timeout||undefined,invalid:res.invalid||undefined,alts:s.rc.slice(0,8),ev:s.ev,
+        pre:q?{playing:q.playing,since:q.since,quiet:q.quiet}:undefined,ms:Date.now()-s.tStart});
+    };
+    const ready=()=>{ if(s.readied||s.done||LIS!==s)return; s.readied=true; lg("ready"); try{if(o&&o.onReady)o.onReady()}catch{} };
     // long mode: what was said so far, as up to 5 alternative transcripts (alternative j of every segment joined)
     const partial=()=>{
       const segs=s.segs.filter(Boolean);if(!segs.length)return {t:"none"};
@@ -623,7 +649,7 @@ function listen(o){
     const clear=()=>{s.timers.forEach(clearTimeout);s.timers=[]};
     const fin=res=>{
       if(s.done)return; s.done=true; clear(); detach(r); if(LIS===s)LIS=null;
-      setTimeout(resumeAudio,0); resolve(res);
+      setTimeout(resumeAudio,0); s.logIt(res); resolve(res);
     };
     s.fin=fin;
     s.arm=()=>{ // hard stop after HARD_MS; a stop() normally delivers a final result, else we give up after a short grace
@@ -638,10 +664,15 @@ function listen(o){
       s.timers.push(setTimeout(giveUp,GRACE_MS));
     };
     try{r.lang="en-US";r.interimResults=long;r.maxAlternatives=5;r.continuous=long}catch{}
-    r.onstart=()=>{ if(s.done||LIS!==s)return; if(!s.started){s.started=true;s.t0=Date.now(); if(!s.stopping)s.arm()} };   // permission prompt time does not count
-    r.onaudiostart=r.onstart;
+    const began=()=>{ if(s.done||LIS!==s)return; if(!s.started){s.started=true;s.t0=Date.now(); if(!s.stopping)s.arm()} };   // permission prompt time does not count
+    r.onstart=()=>{ lg("start"); began(); if(!s.done&&LIS===s)s.timers.push(setTimeout(ready,700)) };   // audiostart is the real "mic is open" signal; 700 ms is the fallback
+    r.onaudiostart=()=>{ lg("audiostart"); began(); ready() };
+    r.onsoundstart=()=>lg("soundstart");r.onspeechstart=()=>lg("speechstart");r.onspeechend=()=>lg("speechend");
+    r.onsoundend=()=>lg("soundend");r.onaudioend=()=>lg("audioend");r.onnomatch=()=>lg("nomatch");
     r.onresult=e=>{
       if(s.done||LIS!==s)return;
+      lg("result");
+      try{for(let i=e.resultIndex||0;i<e.results.length&&s.rc.length<12;i++){const res=e.results[i];for(let j=0;j<res.length&&j<5&&s.rc.length<12;j++){const t=res[j]&&res[j].transcript;if(typeof t==="string"&&t.trim())s.rc.push([t.slice(0,60),Math.round((+res[j].confidence||0)*100)/100])}}}catch{}
       if(long){
         try{for(let i=e.resultIndex||0;i<e.results.length;i++){
           const res=e.results[i],a=[];
@@ -661,12 +692,14 @@ function listen(o){
     r.onerror=e=>{
       if(s.done||LIS!==s)return;
       const code=(e&&e.error)||"unknown";
+      lg("error:"+String(code).slice(0,30));
       if(code==="no-speech"||code==="aborted")return fin(long?partial():{t:"none"});
       if(long&&s.segs.some(Boolean))return fin(partial());       // keep what was heard before the error
       fin({t:"error",code});
     };
     r.onend=()=>{
       if(s.done||LIS!==s)return;
+      lg("end");
       if(long){
         // the recognizer may end after the first words (child pace): listen again, keeping what we have
         if(!s.stopping&&s.segs.some(Boolean)&&s.restarts<3&&Date.now()-s.t0<HARD-800){
@@ -677,21 +710,29 @@ function listen(o){
       }
       fin({t:"none"});
     };
-    s.arm();
-    try{r.start()}
-    catch(e){
-      // InvalidStateError ("already started") etc.: not the child's fault; let her tap again
-      try{r.abort()}catch{}
-      fin(e&&e.name==="InvalidStateError"?{t:"none",invalid:true}:{t:"error",code:"start-failed"});
-    }
+    const go=()=>{
+      if(s.done)return;
+      if(s.stopping)return fin({t:"cancelled"});                 // she tapped stop while the mic was waiting for quiet
+      lg("rec.start");
+      s.arm();
+      try{r.start()}
+      catch(e){
+        // InvalidStateError ("already started") etc.: not the child's fault; let her tap again
+        try{r.abort()}catch{}
+        fin(e&&e.name==="InvalidStateError"?{t:"none",invalid:true}:{t:"error",code:"start-failed"});
+      }
+    };
+    // let the game's own audio finish and fade (QUIET_MS) before the recognizer opens the mic
+    if(o&&o.pre&&o.pre.quiet>0)s.timers.push(setTimeout(go,o.pre.quiet)); else go();
   });
 }
-function detach(r){["onstart","onaudiostart","onresult","onerror","onend","onspeechstart","onnomatch"].forEach(k=>{try{r[k]=null}catch{}})}
+function detach(r){["onstart","onaudiostart","onresult","onerror","onend","onspeechstart","onnomatch","onsoundstart","onspeechend","onsoundend","onaudioend"].forEach(k=>{try{r[k]=null}catch{}})}
 function stopListening(){ if(LIS&&!LIS.done)LIS.stop() }
 function cancelListen(){
   const s=LIS; if(!s||s.done)return;
   s.done=true; s.timers.forEach(clearTimeout); s.timers=[]; LIS=null;
   detach(s.r); try{s.r.abort()}catch{}
+  if(s.logIt)s.logIt({t:"cancelled"});
   s.resolve({t:"cancelled"});
   setTimeout(resumeAudio,0);
 }
@@ -867,7 +908,7 @@ function play(fam,opt){
     const showWhy=t=>{const e=$("why");if(e){e.textContent=t;e.classList.toggle("hidden",!t)}};
     const reveal=()=>{const p=$("pic");if(p){p.textContent=PIC[w]||(sight?"🧩":"");p.classList.add("pop")}};
     function setPhase(p){
-      card.phase=p;const m=$("mic"),l=$("miclab");if(!m)return;m.dataset.phase=p;
+      card.phase=p;const m=$("mic"),l=$("miclab");if(!m)return;m.dataset.phase=p;if(p!=="listening")m.dataset.ready="";
       m.classList.toggle("listening",p==="listening");m.classList.toggle("thinking",p==="thinking");
       m.setAttribute("aria-pressed",p==="listening"?"true":"false");
       m.classList.toggle("nudge",false);
@@ -1027,10 +1068,13 @@ function play(fam,opt){
         setPhase("thinking");stopListening();return;
       }
       if(!srCtor()){enterFallback("unsupported");return}
-      stopAll();clearLit();showWhy("");card.touched=true;
+      const pre=micPrep();stopAll();clearLit();showWhy("");card.touched=true;
       card.micStart=Date.now();const tok=++card.tok;
-      setPhase("listening");setHint("I'm listening... say the word! 👂");
-      const res=await listen();
+      setPhase("listening");setHint("Getting ready... 👂");
+      const res=await listen({mode:sight?"puzzle":"word",target:w,pre,onReady:()=>{
+        if(tok!==card.tok||card.phase!=="listening")return;
+        setHint("Go! Say the word! 🎤");const m=$("mic");if(m)m.dataset.ready="1";readyCue();
+      }});
       if(!alive()||tok!==card.tok)return;
       if(res.t==="cancelled"){if(card.phase==="listening"||card.phase==="thinking")setPhase("idle");return}
       setPhase("idle");
@@ -1141,7 +1185,7 @@ function playSentences(){
     const reveal=()=>{const p=$("pic");if(p){p.textContent=S.emoji;p.classList.add("pop")}};
     const mark=got=>SW.forEach((e,k)=>{e.classList.toggle("got",!!got[k]);e.classList.toggle("nyet",!got[k])});   // green glow / soft orange, never red
     function setPhase(p){
-      card.phase=p;const m=$("mic"),l=$("miclab");if(!m)return;m.dataset.phase=p;
+      card.phase=p;const m=$("mic"),l=$("miclab");if(!m)return;m.dataset.phase=p;if(p!=="listening")m.dataset.ready="";
       m.classList.toggle("listening",p==="listening");m.classList.toggle("thinking",p==="thinking");
       m.setAttribute("aria-pressed",p==="listening"?"true":"false");m.classList.toggle("nudge",false);
       if(l)l.textContent=p==="listening"?"Listening... tap when done 🛑":p==="thinking"?"Hmm...":p==="feedback"?"":"Read the sentence!";
@@ -1287,10 +1331,13 @@ function playSentences(){
         setPhase("thinking");stopListening();return;
       }
       if(!srCtor()){enterFallback("unsupported");return}
-      stopAll();clearLit();showWhy("");card.touched=true;
+      const pre=micPrep();stopAll();clearLit();showWhy("");card.touched=true;
       card.micStart=Date.now();const tok=++card.tok;
-      setPhase("listening");setHint("I'm listening... read the sentence! 👂");
-      const res=await listen({long:true});
+      setPhase("listening");setHint("Getting ready... 👂");
+      const res=await listen({long:true,mode:"sentence",target:S.text,pre,onReady:()=>{
+        if(tok!==card.tok||card.phase!=="listening")return;
+        setHint("Go! Read the sentence! 🎤");const m=$("mic");if(m)m.dataset.ready="1";readyCue();
+      }});
       if(!alive()||tok!==card.tok)return;
       if(res.t==="cancelled"){if(card.phase==="listening"||card.phase==="thinking")setPhase("idle");return}
       setPhase("idle");
@@ -1423,17 +1470,41 @@ function micTest(){
   <div class="card"><div class="small-note" style="text-align:left">Grown-up: tap the mic and say a word, e.g. "sun". This shows what the recognizer heard (best guess first). Chrome needs the internet for this.
   <br>Speech recognition available: <b>${srCtor()?"yes":"NO"}</b> · secure page (https): <b>${window.isSecureContext?"yes":"NO"}</b></div>
   <div class="micwrap" style="margin-top:14px"><button class="mic" id="mic" aria-pressed="false" aria-label="Test the microphone">🎤</button><div class="miclab" id="miclab" aria-live="polite">Tap and say a word</div></div>
-  <div id="mout" style="margin-top:12px;font-size:20px;overflow-wrap:anywhere" aria-live="polite"></div></div>`);
+  <div id="mout" style="margin-top:12px;font-size:20px;overflow-wrap:anywhere" aria-live="polite"></div></div>
+  <div class="card"><div style="font-size:20px;font-weight:700;margin-bottom:6px">Attempt log</div>
+  <div class="small-note" style="text-align:left">The last ${MICLOG_MAX} microphone tries in the game, kept on this phone only. Press Copy and paste it to whoever is fixing the listening. It holds the word, what Chrome heard, and event times in ms.</div>
+  <div class="row" style="margin:8px 0"><button class="btn small" id="logshow">Show log (${MICLOG.length})</button><button class="btn small" id="logcopy">Copy log</button><button class="btn small" id="logclear">Clear</button></div>
+  <pre id="logout" class="small-note" style="text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;display:none"></pre>
+  <div class="small-note" id="lognote" style="text-align:center" aria-live="polite"></div></div>`);
   $("back").onclick=home;
+  const logLine=r=>{
+    const t=(r.at||"").slice(11,19),al=(r.alts||[]).slice(0,3).map(a=>a[0]+"@"+a[1]).join("|");
+    const ev=(r.ev||[]).map(e=>e[0]+"+"+e[1]).join(" ");
+    return `${t} ${r.mode||""} "${r.target||""}" -> ${r.out}${r.code?"("+r.code+")":""}${r.timeout?" timeout":""}${r.invalid?" invalid":""} ${r.ms}ms heard=[${al}] audio=${r.pre?(r.pre.playing?"playing":"idle")+",since "+r.pre.since+"ms,waited "+r.pre.quiet+"ms":"?"} ev: ${ev}`;
+  };
+  const logText=()=>{
+    const hdr={app:"julias-reading-castle",time:new Date().toISOString(),ua:navigator.userAgent,online:navigator.onLine,secure:window.isSecureContext,
+      sr:!!srCtor(),visible:document.visibilityState,audioCtx:A.ctx?A.ctx.state:"none",tries:MICLOG.length};
+    return JSON.stringify(hdr)+"\n"+MICLOG.map(logLine).join("\n")+"\n\nRAW:\n"+JSON.stringify(MICLOG);
+  };
+  const lnote=m=>{const e=$("lognote");if(e&&rid===roundId)e.textContent=m};
+  $("logshow").onclick=()=>{const o=$("logout");if(o.style.display==="none"){o.textContent=MICLOG.length?MICLOG.slice().reverse().map(logLine).join("\n"):"No tries logged yet.";o.style.display="block"}else o.style.display="none"};
+  $("logcopy").onclick=async()=>{
+    const txt=logText();
+    try{await navigator.clipboard.writeText(txt);lnote("Copied. Paste it into the chat.");return}catch{}
+    const o=$("logout");o.textContent=txt;o.style.display="block";
+    try{const rg=document.createRange();rg.selectNodeContents(o);const sel=getSelection();sel.removeAllRanges();sel.addRange(rg);lnote("Could not copy by itself. The text is selected below: copy it by hand.")}catch{lnote("Could not copy. The log is shown below.")}
+  };
+  $("logclear").onclick=()=>{MICLOG=[];try{localStorage.removeItem(MICLOG_KEY)}catch{}$("logshow").textContent="Show log (0)";$("logout").style.display="none";lnote("Log cleared.")};
   let busy=false,tok=0;
   const lab=t=>{const e=$("miclab");if(e)e.textContent=t};
   $("mic").onclick=async()=>{
     if(rid!==roundId)return;
     if(busy){ if(LIS&&!LIS.stopping){lab("Hmm...");stopListening()} return }
     if(!srCtor()){$("mout").textContent="This browser has no speech recognition. Use Chrome on Android.";return}
-    busy=true;const my=++tok;stopAll();
-    $("mic").classList.add("listening");$("mic").setAttribute("aria-pressed","true");lab("Listening... tap to stop 🛑");$("mout").textContent="";
-    const res=await listen();
+    busy=true;const my=++tok;const pre=micPrep();stopAll();
+    $("mic").classList.add("listening");$("mic").setAttribute("aria-pressed","true");lab("Getting ready...");$("mout").textContent="";
+    const res=await listen({mode:"test",pre,onReady:()=>{if(rid===roundId&&my===tok)lab("Go! Say a word 🎤 (tap to stop)")}});
     if(rid!==roundId||my!==tok)return;
     busy=false;$("mic").classList.remove("listening");$("mic").setAttribute("aria-pressed","false");lab("Tap and say a word");
     const out=$("mout");

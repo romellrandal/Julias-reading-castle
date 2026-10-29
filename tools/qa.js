@@ -785,6 +785,79 @@ T('mic-test-screen',async()=>{
   ok((await h.ev(()=>window.__sr.aborts))>=1&&(await h.ev(()=>__dbg.LIS))===null,'aborted on leave');
   await h.close();
 });
+T('mic-attempt-log-ready-cue-and-quiet-gap',async()=>{
+  const h=await open();
+  const log=()=>h.ev(()=>JSON.parse(JSON.stringify(MICLOG)));
+  await h.play();const w=await h.word();
+  // 1) a wrong answer is logged with every event, the alternatives and their confidence
+  await h.q({type:'result',alts:['xyz','abc']});
+  await h.mic();await h.wf(()=>MICLOG.length>=1);
+  let L=await log(),r=L[0];
+  ok(r.mode==='word'&&r.target===w&&r.out==='result','record: mode/target/out '+JSON.stringify({m:r.mode,t:r.target,o:r.out}));
+  ok(r.alts[0][0]==='xyz'&&r.alts[0][1]===0.9&&r.alts.length===2,'alternatives with confidence '+JSON.stringify(r.alts));
+  const en=r.ev.map(e=>e[0]);
+  ok(['start','audiostart','ready','result'].every(n=>en.includes(n)),'event timeline has start/audiostart/ready/result: '+en.join());
+  ok(en.indexOf('ready')>en.indexOf('audiostart'),'ready cue comes after audiostart');
+  ok(r.pre&&typeof r.pre.playing==='boolean'&&typeof r.pre.since==='number','audio context recorded '+JSON.stringify(r.pre));
+  ok(JSON.parse(await h.ev(()=>localStorage.getItem('jrg-miclog'))).length===1,'persisted to localStorage');
+  await h.idle();
+  // 2) the ready cue: hint says Go and the mic turns green only once the recognizer is open
+  await h.q({type:'hang'});
+  await h.page.waitForTimeout(450);
+  await h.tap('#mic');
+  await h.wf(()=>document.getElementById('mic').dataset.ready==='1');
+  ok(/Go!/.test(await h.txt('#hint')),'hint says Go once ready: '+await h.txt('#hint'));
+  await h.tap('#mic').catch(()=>{});await h.page.waitForTimeout(700);await h.tap('#mic');
+  await h.idle();
+  // 3) game audio just ended: the recognizer must not start for QUIET_MS
+  await h.q({type:'end'});
+  await h.page.waitForTimeout(450);
+  await h.ev(()=>{A.lastAct=Date.now()});
+  const s0=await h.ev(()=>window.__sr.starts);
+  await h.tap('#mic');await h.page.waitForTimeout(150);
+  ok((await h.ev(()=>window.__sr.starts))===s0,'recognizer not started 150 ms after audio ended');
+  await h.wf(()=>MICLOG.length>=3,8000);await h.idle();
+  L=await log();r=L[L.length-1];
+  ok(r.pre.quiet>=250&&r.pre.quiet<=400,'waited for quiet: '+JSON.stringify(r.pre));
+  const rs=r.ev.find(e=>e[0]==='rec.start');
+  ok(rs&&rs[1]>=r.pre.quiet-30,'rec.start delayed by the quiet gap: '+JSON.stringify(rs));
+  ok(r.out==='none','no result logged as none');
+  // 4) tapping a letter during the quiet wait cancels cleanly and is logged
+  await h.q({type:'hang'});
+  await h.page.waitForTimeout(450);
+  await h.ev(()=>{A.lastAct=Date.now()});
+  const s1=await h.ev(()=>window.__sr.starts);
+  await h.tap('#mic');await h.page.waitForTimeout(80);
+  await h.tap('.L[data-k="0"]');await h.page.waitForTimeout(700);
+  ok((await h.ev(()=>window.__sr.starts))===s1,'cancelled before the recognizer started');
+  L=await log();ok(L[L.length-1].out==='cancelled','logged as cancelled');
+  ok((await h.ev(()=>document.getElementById('mic').dataset.phase))==='idle','mic back to idle');
+  // 5) the grown-up log screen
+  await h.back();await h.page.waitForSelector('#testmic');
+  await h.tap('#testmic');await h.page.waitForSelector('#logshow');
+  ok(/Show log \(\d+\)/.test(await h.txt('#logshow')),'log button shows the count');
+  await h.tap('#logshow');
+  ok(/-> (result|none|cancelled)/.test(await h.txt('#logout'))&&/xyz@0.9/.test(await h.txt('#logout')),'log lines readable: '+(await h.txt('#logout')).slice(0,160));
+  await h.tap('#logcopy');await h.page.waitForTimeout(300);
+  ok((await h.txt('#lognote')).length>0,'copy gives a message: '+await h.txt('#lognote'));
+  await h.tap('#logclear');
+  ok((await log()).length===0&&(await h.ev(()=>localStorage.getItem('jrg-miclog')))===null,'clear empties memory and storage');
+  await h.close();
+});
+T('mic-log-corrupt-storage-and-cap',async()=>{
+  for(const raw of ['{not json','null','{"a":1}','[1,"x",null]']){
+    const h=await open({init:`try{if(!localStorage.getItem('__ml')){localStorage.setItem('__ml','1');localStorage.setItem('jrg-miclog',${JSON.stringify(raw)})}}catch(e){}`});
+    const n=await h.ev(()=>MICLOG.length);ok(n===0,'corrupt log '+raw+' -> empty ('+n+')');
+    await h.close();
+  }
+  const h=await open();
+  await h.ev(()=>{for(let i=0;i<80;i++)micLogAdd({at:new Date().toISOString(),mode:'word',target:'X'+i,out:'none',ev:[],alts:[],ms:1})});
+  ok((await h.ev(()=>MICLOG.length))===50&&(await h.ev(()=>MICLOG[49].target))==='X79','capped at 50, newest kept');
+  const hs=await open({init:"Storage.prototype.setItem=function(){throw new DOMException('full','QuotaExceededError')};"});
+  await hs.ev(()=>micLogAdd({at:'t',mode:'word',target:'A',out:'none',ev:[],alts:[],ms:1}));
+  ok((await hs.ev(()=>MICLOG.length))===1,'storage that throws does not break logging');
+  await hs.close();await h.close();
+});
 T('recorder-and-override',async()=>{
   const h=await open();
   await h.tap('#setup');await h.page.waitForSelector('.rec');
