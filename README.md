@@ -16,14 +16,14 @@ Repo Settings > Pages > Build and deployment > Deploy from a branch > `main` / `
 
 ## Rebuild
 - `python3 tools/build.py` reads `tools/castle.src.html` and `tools/clips.json` and writes `index.html`.
-- `build.py` also embeds the three Kokoro voice packs `tools/clips_<voice>.json` and **fails** if any id in `tools/phrases.json` is missing from any pack. It finishes with `node --check` on the page script.
+- `build.py` also embeds the voice packs `tools/clips_<voice>.json` (Angie from xAI, three Kokoro voices) and **fails** if any id in `tools/phrases.json` is missing from any pack. It finishes with `node --check` on the page script.
 - "Classic" (robotic espeak) clips: `python3 tools/gen2.py` (needs `espeak-ng`, `ffmpeg`, `numpy`) regenerates `tools/clips/` and `tools/clips.json`; they are the Classic letter sounds and the last-resort fallback. Letter sounds can also be recorded in the grown-up's voice on the home screen (stored on the device only, they override the built-in ones).
 - QA: `NODE_PATH=$(npm root -g) node tools/qa.js [filterRegex]` (Playwright + Chromium with a mock speech recognizer; run it in filtered shards, e.g. `'^voice-'` for the voice tests). Offline audio QA: `python3 tools/check_audio.py`.
 
-## Voices (Kokoro neural voices)
-Home > **Voice** (grown-up area, bottom row) opens the voice picker: three cards, **Heart** (warm, `af_heart`), **Nicole** (soft and calm, `af_nicole`), **Sarah** (bright and clear, `af_sarah`). **▶ Hear** plays a letter sound (m), the word "sun" and a cheer in that voice; **✓ Choose** makes it the voice for everything (prompts, praise, words, the sound-out ladder, letters, Test sound) immediately. A second switch, **Letter sounds: Voice / Classic**, picks the letter sounds from the chosen voice or from the older robotic espeak set. Letter sounds recorded by the grown-up (Record letter sounds) always win over both. The choice is kept in `localStorage` (`jrg-voice`) and is independent of game progress (Reset progress does not touch it).
+## Voices (Angie, plus Kokoro neural voices)
+Home > **Voice** (grown-up area, bottom row) opens the voice picker: four cards. **Angie** (Angie's own voice, `angie`) is the default. The others are **Heart** (warm, `af_heart`), **Nicole** (soft and calm, `af_nicole`), **Sarah** (bright and clear, `af_sarah`). **▶ Hear** plays a letter sound (m), the word "sun" and a cheer in that voice; **✓ Choose** makes it the voice for everything (prompts, praise, words, the sound-out ladder, letters, Test sound) immediately. A second switch, **Letter sounds: Voice / Classic**, picks the letter sounds from the chosen voice or from the older robotic espeak set. Letter sounds recorded by the grown-up (Record letter sounds) always win over both. The choice is kept in `localStorage` (`jrg-voice`) and is independent of game progress (Reset progress does not touch it).
 
-All three packs (about 0.9 MB each, including the sentence clips) plus the Classic set are embedded in `index.html` (about 3.4 MB), so the game still works offline. If a clip is missing or will not decode, the game tries the Classic clip (letters) or the next voice (words and phrases) before ever falling back to the browser's speechSynthesis.
+All four packs (about 0.9 MB each, including the sentence clips) plus the Classic set are embedded in `index.html` (about 4.4 MB), so the game still works offline. If a clip is missing or will not decode, the game tries the Classic clip (letters) or the next voice (words and phrases; Angie falls back to Heart, then Nicole, then Sarah) before ever falling back to the browser's speechSynthesis.
 
 ### Regenerating the voices
 Needs Python 3.10-3.13 with `kokoro-onnx`, `numpy`, `soundfile`, plus `ffmpeg` and `ffprobe` on PATH (the pip package `kokoro` is not used and does not build on 3.13).
@@ -43,7 +43,20 @@ Env vars `KOKORO_MODEL` / `KOKORO_VOICES` replace the two flags. `--voices af_he
 
 Sounds are normalised to the same loudness (gated RMS 0.12) with short fades, mp3 at 24 kHz mono 48 kbps. Stop consonants (b d g j k p t h, and c = k) are cut right after the burst; s f v z are re-synthesised hiss/buzz shaped like the voice's own consonant; m n l r and the vowels are the model's own sounds; w and y keep a few milliseconds of vowel. These isolated sounds were checked by measurement only, not by listening: audition them on the phone and switch a letter set to **Classic** if one sounds off.
 
+### Regenerating Angie (xAI)
+The `angie` pack is made with the xAI text-to-speech API and a custom voice. Set `XAI_API_KEY` (secret) and `XAI_VOICE_ID` in the environment. Never write the key to a file.
+```
+python3 tools/gen_xai.py --list-voices   # shows the custom voices on the account
+python3 tools/gen_xai.py --dry-run       # prints every text that would be sent (no key needed)
+python3 tools/gen_xai.py                 # all 140 clips, about 1 minute
+python3 tools/gen_xai.py --only LM,WCAT  # just these ids, merged into the pack
+python3 tools/check_audio.py && python3 tools/build.py
+```
+The request is `POST https://api.x.ai/v1/tts` with `{"text", "voice_id", "language"}`; the reply is an mp3. Texts come from `tools/phrases.json` (letter sounds from `xai_letters`, such as "buh" and "mmm"). Clips are trimmed, faded and loudness-matched like the Kokoro clips. Sustained letters are capped at 1.2 s because the API length varies. The letter sounds are "consonant + uh" syllables, so `check_audio.py` does not apply the Kokoro stop-length rules to Angie. Z (a low buzz in the checks), V, X, R and L were flagged for a listen.
+
 ### Credits and licence
+Angie's clips are AI-generated with xAI text-to-speech from a custom voice made from Angie's voice, with her consent.
+
 Voices: **Kokoro-82M** by hexgrad ([hexgrad/Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)), Apache-2.0, run with **kokoro-onnx** by thewh1teagle (MIT). Phonemisation by espeak-ng (GPL-3.0, used only at generation time; the shipped game contains audio, not espeak code). The generated clips are audio output of the Apache-2.0 model.
 
 ## Puzzle words and sentences

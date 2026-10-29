@@ -369,7 +369,7 @@ def main():
     print("manifest ok: %d ids (%d used by the game)" % (len(clips), len(need)))
     if o.check:
         return
-    voices = o.voices.split(",") if o.voices else [v["id"] for v in m["voices"]]
+    voices = o.voices.split(",") if o.voices else [v["id"] for v in m["voices"] if v.get("engine") != "xai"]
     only = set(o.only.split(",")) if o.only else None
     if only and only - set(clips):
         sys.exit("unknown ids: " + ", ".join(sorted(only - set(clips))))

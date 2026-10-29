@@ -1,6 +1,12 @@
 {
- "_comment": "Clip manifest for tools/gen_kokoro.py. id -> text. Prefix L=letter sound (ph = IPA phonemes), W=word, P=phrase, S=sentence (not used by the game yet). Add an entry here and re-run gen_kokoro.py; build.py checks every id exists in every voice pack. A value can be a plain string or an object {text|ph, speed, raw}.",
+ "_comment": "Clip manifest for tools/gen_kokoro.py. id -> text. Prefix L=letter sound (ph = IPA phonemes), W=word, P=phrase, S=sentence (not used by the game yet). Add an entry here and re-run gen_kokoro.py; build.py checks every id exists in every voice pack. A value can be a plain string or an object {text|ph, speed, raw}. xai_letters = the text spoken to the xAI voice for each letter sound (tools/gen_xai.py); voices with engine xai are skipped by gen_kokoro.py.",
  "voices": [
+  {
+   "id": "angie",
+   "name": "Angie",
+   "blurb": "Angie's own voice",
+   "engine": "xai"
+  },
   {
    "id": "af_heart",
    "name": "Heart",
@@ -271,5 +277,33 @@
   "Ss34": "I see the wet mud.",
   "Ss35": "the big fox can run.",
   "Ss36": "dad can see the sun."
+ },
+ "xai_letters": {
+  "LA": "aah",
+  "LB": "buh",
+  "LC": "kuh",
+  "LD": "duh",
+  "LE": "eh",
+  "LF": "fff",
+  "LG": "guh",
+  "LH": "huh",
+  "LI": "ih",
+  "LJ": "juh",
+  "LK": "kuh",
+  "LL": "lll",
+  "LM": "mmm",
+  "LN": "nnn",
+  "LO": "ah",
+  "LP": "puh",
+  "LQ": "kwuh",
+  "LR": "rrr",
+  "LS": "sss",
+  "LT": "tuh",
+  "LU": "uh",
+  "LV": "vvv",
+  "LW": "wuh",
+  "LX": "ks",
+  "LY": "yuh",
+  "LZ": "zzz"
  }
 }

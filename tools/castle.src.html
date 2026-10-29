@@ -179,7 +179,7 @@ const CATALOG = [
 const BUNDLE = __CLIPS__;
 const VOICES = BUNDLE.meta.filter(v=>BUNDLE.voices[v.id]);
 const VOICE_IDS = VOICES.map(v=>v.id);
-const DEFAULT_VOICE = VOICE_IDS.includes("af_heart") ? "af_heart" : VOICE_IDS[0];
+const DEFAULT_VOICE = VOICE_IDS.includes("angie") ? "angie" : VOICE_IDS.includes("af_heart") ? "af_heart" : VOICE_IDS[0];
 const CLASSIC = BUNDLE.classic;
 
 // ---------- storage ----------

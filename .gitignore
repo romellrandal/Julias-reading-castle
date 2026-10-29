@@ -9,3 +9,4 @@ kmodel/
 voices-*.bin
 tools/clips_kokoro/
 __pycache__/
+tools/clips_xai/

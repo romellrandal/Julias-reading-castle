@@ -99,6 +99,7 @@ def main():
     man = json.load(open(os.path.join(HERE, "phrases.json"), encoding="utf-8"))
     ids = [k for sec in ("letters", "words", "phrases", "sentences") for k in man[sec]]
     voices = [v["id"] for v in man["voices"]]
+    syllable = {v["id"] for v in man["voices"] if v.get("engine") == "xai"}   # letter sounds are "buh"-style syllables, not bare stops
     hard, soft, rows = [], [], []
     stats = {}
     for v in voices:
@@ -142,7 +143,7 @@ def main():
             dev = db[(v, cid)] - med
             notes = []
             if not (lo <= d <= hi):
-                (hard if cid[0] != "L" or d > hi * 1.5 or d < lo * 0.6 else soft).append((v, cid, "duration %.2fs outside %.2f-%.2f" % (d, lo, hi)))
+                (hard if (cid[0] != "L" or d > hi * 1.5 or d < lo * 0.6) and v not in syllable else soft).append((v, cid, "duration %.2fs outside %.2f-%.2f" % (d, lo, hi)))
                 notes.append("dur")
             if pk >= 0.99:
                 hard.append((v, cid, "clipping, peak %.3f" % pk)); notes.append("clip")
@@ -155,7 +156,7 @@ def main():
                 if kl == "stop":
                     h = len(a) // 2
                     frac = float(np.sum(a[:h] ** 2) / (np.sum(a ** 2) + 1e-12))
-                    if d >= 0.25:
+                    if d >= 0.25 and v not in syllable:
                         hard.append((v, cid, "stop longer than 250 ms")); notes.append("long")
                     if frac < 0.5:
                         soft.append((v, cid, "stop energy is late (first half only %.0f%%) - may end in a vowel" % (frac * 100))); notes.append("late")

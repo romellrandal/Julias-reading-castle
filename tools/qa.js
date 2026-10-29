@@ -943,8 +943,8 @@ T('edge-practice-fatal-error',async()=>{
 });
 
 // ====================== voices (Kokoro packs, picker, letter style) ======================
-const PV=['af_heart','af_nicole','af_sarah'];
-const VN={af_heart:'Heart',af_nicole:'Nicole',af_sarah:'Sarah'};
+const PV=['angie','af_heart','af_nicole','af_sarah'];
+const VN={angie:'Angie',af_heart:'Heart',af_nicole:'Nicole',af_sarah:'Sarah'};
 const seedPrefs=raw=>`try{if(!localStorage.getItem('__ps')){localStorage.setItem('__ps','1');localStorage.setItem('jrg-voice',${JSON.stringify(typeof raw==='string'?raw:JSON.stringify(raw))})}}catch(e){}`;
 const toPicker=async h=>{await h.tap('#voice');await h.page.waitForSelector('.vcard')};
 const audDone=(h,t)=>h.wf(()=>/^That was|did not play/.test(document.getElementById('vstat')?.textContent||''),null,t||15000);
@@ -956,7 +956,7 @@ T('voice-packs-complete-and-size',async()=>{
   const man=JSON.parse(fs.readFileSync(path.join(__dirname,'phrases.json'),'utf8'));
   const ids=['letters','words','phrases','sentences'].flatMap(k=>Object.keys(man[k]));
   ok(ids.length>=97,'manifest has '+ids.length+' ids');
-  ok(JSON.stringify(man.voices.map(v=>v.id))===JSON.stringify(PV),'manifest lists the three voices in order');
+  ok(JSON.stringify(man.voices.map(v=>v.id))===JSON.stringify(PV),'manifest lists the voices in order');
   for(const v of PV){
     const pack=JSON.parse(fs.readFileSync(path.join(__dirname,'clips_'+v+'.json'),'utf8'));
     const miss=ids.filter(i=>typeof pack[i]!=='string'||pack[i].length<100);
@@ -968,7 +968,7 @@ T('voice-packs-complete-and-size',async()=>{
   const h=await open();
   const r=await h.ev(()=>{const B=__dbg.BUNDLE,o=[];for(const v of __dbg.VOICE_IDS)for(const k of Object.keys(B.voices[__dbg.VOICE_IDS[0]]))if(typeof B.voices[v][k]!=='string')o.push(v+' '+k);return {o,ids:Object.keys(B.voices[__dbg.VOICE_IDS[0]]).length,vs:__dbg.VOICE_IDS}});
   ok(r.o.length===0&&r.ids>=97,'embedded packs identical id sets '+r.o.slice(0,3)+' n='+r.ids);
-  ok(JSON.stringify(r.vs)===JSON.stringify(PV),'three voices embedded');
+  ok(JSON.stringify(r.vs)===JSON.stringify(PV),'all voices embedded');
   const miss=await h.ev(ids=>ids.filter(i=>!__dbg.rawClip('af_sarah/'+i)||!__dbg.rawClip('af_heart/'+i)||!__dbg.rawClip('af_nicole/'+i)),ids);
   ok(miss.length===0,'every manifest id embedded for every voice '+miss.slice(0,4));
   await h.close();
@@ -976,17 +976,17 @@ T('voice-packs-complete-and-size',async()=>{
 
 T('voice-picker-renders-and-persists',async()=>{
   const h=await open();
-  ok(/Voice: Heart/.test(await h.txt('#voice')),'home Voice button shows default Heart');
-  ok((await prefsOf(h)).voice==='af_heart','default voice af_heart');
+  ok(/Voice: Angie/.test(await h.txt('#voice')),'home Voice button shows default Angie');
+  ok((await prefsOf(h)).voice==='angie','default voice angie');
   await toPicker(h);
   const cards=await h.ev(()=>[...document.querySelectorAll('.vcard')].map(c=>({id:c.dataset.v,name:c.querySelector('.vtitle span').textContent,sel:c.classList.contains('sel'),play:!!c.querySelector('.vplay'),choose:!!c.querySelector('.vsel')})));
-  ok(cards.length===3&&cards.map(c=>c.id).join()===PV.join(),'three cards in order '+JSON.stringify(cards));
-  ok(cards.map(c=>c.name).join()==='Heart,Nicole,Sarah','friendly names');
-  ok(cards.filter(c=>c.sel).map(c=>c.id).join()==='af_heart','only Heart highlighted');
+  ok(cards.length===4&&cards.map(c=>c.id).join()===PV.join(),'three cards in order '+JSON.stringify(cards));
+  ok(cards.map(c=>c.name).join()==='Angie,Heart,Nicole,Sarah','friendly names');
+  ok(cards.filter(c=>c.sel).map(c=>c.id).join()==='angie','only Angie highlighted');
   ok(cards.every(c=>c.play&&c.choose),'each card has audition + choose');
   ok(await h.ev(()=>document.getElementById('ls-voice').getAttribute('aria-pressed')==='true'),'letter style Voice by default');
   await h.tap('[data-sel="af_nicole"]');
-  ok(await h.ev(()=>document.querySelector('.vcard[data-v=af_nicole]').classList.contains('sel')&&!document.querySelector('.vcard[data-v=af_heart]').classList.contains('sel')),'highlight moves to Nicole');
+  ok(await h.ev(()=>document.querySelector('.vcard[data-v=af_nicole]').classList.contains('sel')&&!document.querySelector('.vcard[data-v=angie]').classList.contains('sel')),'highlight moves to Nicole');
   ok((await h.txt('[data-sel="af_nicole"]')).includes('Chosen'),'button says Chosen');
   const st=JSON.parse(await stored(h));ok(st.voice==='af_nicole'&&st.letters==='voice','stored '+JSON.stringify(st));
   await h.page.reload();await h.page.waitForSelector('#go');
@@ -1002,9 +1002,9 @@ T('voice-picker-renders-and-persists',async()=>{
 });
 
 T('voice-prefs-corrupt-or-absent',async()=>{
-  const cases=[['{not json','af_heart','voice'],['null','af_heart','voice'],['[]','af_heart','voice'],['"af_sarah"','af_heart','voice'],['123','af_heart','voice'],
-    ['{"voice":"__proto__"}','af_heart','voice'],['{"voice":"constructor","letters":"classic"}','af_heart','classic'],['{"voice":5,"letters":{}}','af_heart','voice'],
-    ['{"voice":"AF_HEART"}','af_heart','voice'],['{"voice":"af_nope","letters":"zzz"}','af_heart','voice'],
+  const cases=[['{not json','angie','voice'],['null','angie','voice'],['[]','angie','voice'],['"af_sarah"','angie','voice'],['123','angie','voice'],
+    ['{"voice":"__proto__"}','angie','voice'],['{"voice":"constructor","letters":"classic"}','angie','classic'],['{"voice":5,"letters":{}}','angie','voice'],
+    ['{"voice":"AF_HEART"}','angie','voice'],['{"voice":"af_nope","letters":"zzz"}','angie','voice'],
     ['{"voice":"af_sarah","letters":"classic"}','af_sarah','classic'],['{"voice":"af_nicole"}','af_nicole','voice']];
   for(const [raw,v,l] of cases){
     const h=await open({init:seedPrefs(raw)});
@@ -1015,7 +1015,7 @@ T('voice-prefs-corrupt-or-absent',async()=>{
   }
   // storage that throws on read AND write: default voice, picker still works for the session
   const h=await open({init:"Storage.prototype.getItem=function(){throw new DOMException('denied','SecurityError')};Storage.prototype.setItem=function(){throw new DOMException('full','QuotaExceededError')};"});
-  ok((await prefsOf(h)).voice==='af_heart','throwing storage -> default voice');
+  ok((await prefsOf(h)).voice==='angie','throwing storage -> default voice');
   await toPicker(h);await h.tap('[data-sel="af_sarah"]');
   ok((await prefsOf(h)).voice==='af_sarah','selection still works in-session without storage');
   await h.tap('#ls-classic');ok((await prefsOf(h)).letters==='classic','toggle works in-session without storage');
@@ -1037,7 +1037,7 @@ T('voice-audition-three-clips-in-order',async()=>{
     ok(c.every(x=>x.v===v),v+': all clips from that voice '+c.map(x=>x.v).join());
     ok(c[1].at>c[0].at&&c[2].at>c[1].at,'ordered in time');
     ok((await h.txt(`[data-play="${v}"]`)).includes('Hear'),'button back to Hear');
-    ok((await prefsOf(h)).voice==='af_heart','audition does not change the saved voice');
+    ok((await prefsOf(h)).voice==='angie','audition does not change the saved voice');
   }
   ok(await h.ev(()=>window.__act.max)<=1,'never two clips at once during auditions (max '+await h.ev(()=>window.__act.max)+')');
   ok(await h.ev(()=>window.__log.filter(e=>e.t==='tts'||e.t==='media').length)===0,'no speechSynthesis / media element used');
@@ -1114,7 +1114,7 @@ T('voice-switch-takes-effect-immediately',async()=>{
   await toPicker(h);await h.tap('[data-sel="af_sarah"]');await h.tap('#back');
   await h.tap('#test');await h.wf(()=>/Sarah|Sound works/.test(document.getElementById('tstat')?.textContent||''),null,8000);await h.page.waitForTimeout(2500);
   const c=await h.clips();
-  ok(c.slice(0,2).every(x=>x.v==='af_heart')&&c.slice(-2).every(x=>x.v==='af_sarah')&&c.length===4,'first Test sound Heart, second Sarah: '+c.map(x=>x.v+'/'+x.k).join());
+  ok(c.slice(0,2).every(x=>x.v==='angie')&&c.slice(-2).every(x=>x.v==='af_sarah')&&c.length===4,'first Test sound Angie, second Sarah: '+c.map(x=>x.v+'/'+x.k).join());
   await h.close();
 });
 
@@ -1161,11 +1161,11 @@ T('voice-missing-or-corrupt-clips-fall-back',async()=>{
   const h=await open();
   const r=await h.ev(async()=>{
     const out={};const B=__dbg.BUNDLE.voices;
-    B.af_heart.WSUN='@@@not-base64@@@';                  // corrupt
-    B.af_heart.WBUS='AAAAAAAAAAAAAAAAAAAAAAAA';         // valid base64, not audio
-    delete B.af_heart.WCAT;                             // missing
-    delete B.af_heart.LM;                               // missing letter
-    B.af_heart.Ppraise0='';                             // empty
+    B.angie.WSUN='@@@not-base64@@@';                  // corrupt
+    B.angie.WBUS='AAAAAAAAAAAAAAAAAAAAAAAA';         // valid base64, not audio
+    delete B.angie.WCAT;                             // missing
+    delete B.angie.LM;                               // missing letter
+    B.angie.Ppraise0='';                             // empty
     for(const [k,id] of [['W','SUN'],['W','BUS'],['W','CAT'],['L','M'],['P','praise0']]){
       try{out[k+id]=await say(k,id,'x',{ep:stopAll(),noTts:true})}catch(e){out[k+id]='THREW '+e}
     }
@@ -1175,9 +1175,9 @@ T('voice-missing-or-corrupt-clips-fall-back',async()=>{
   ok(Object.values(r).every(v=>v===true),'every degraded id still played: '+JSON.stringify(r));
   const c=await h.clips();
   ok(c.length===5,'five clips played ('+c.length+')');
-  ok(c.slice(0,3).every(x=>x.v==='af_nicole'),'words fall back to the next voice, not to robot speech: '+c.map(x=>x.v+'/'+x.k).join());
+  ok(c.slice(0,3).every(x=>x.v==='af_heart'),'words fall back to the next voice, not to robot speech: '+c.map(x=>x.v+'/'+x.k).join());
   ok(c[3].k==='LM'&&c[3].v==='classic','missing letter falls back to Classic letter: '+c[3].v);
-  ok(c[4].v==='af_nicole','empty phrase falls back to next voice');
+  ok(c[4].v==='af_heart','empty phrase falls back to next voice');
   ok(await h.ev(()=>window.__log.filter(e=>e.t==='tts').length)===0,'speechSynthesis not needed');
   // every source gone -> last resort is speechSynthesis, and nothing throws
   const r2=await h.ev(async()=>{for(const v of __dbg.VOICE_IDS)delete __dbg.BUNDLE.voices[v].WSUN;delete __dbg.BUNDLE.classic.WSUN;try{return await say('W','SUN','sun',{ep:stopAll()})}catch(e){return 'THREW '+e}});
@@ -1190,7 +1190,7 @@ T('voice-missing-or-corrupt-clips-fall-back',async()=>{
 T('voice-whole-pack-corrupt-keeps-banner-and-game-works',async()=>{
   const i0=SRC.indexOf('const BUNDLE = ')+15,i1=SRC.indexOf(';\nconst VOICES');
   const B=JSON.parse(SRC.slice(i0,i1));
-  for(const k of Object.keys(B.voices.af_heart))B.voices.af_heart[k]='AAAAAAAAAAAAAAAAAAAA';
+  for(const k of Object.keys(B.voices.angie))B.voices.angie[k]='AAAAAAAAAAAAAAAAAAAA';
   const src=SRC.slice(0,i0)+JSON.stringify(B)+SRC.slice(i1);
   const h=await open({src});
   await h.play();await h.page.waitForTimeout(900);
@@ -1199,7 +1199,7 @@ T('voice-whole-pack-corrupt-keeps-banner-and-game-works',async()=>{
   ok(/couldn't load my sounds/.test(await h.txt('#ab')),'existing "could not load" banner shown');
   await h.page.waitForTimeout(500);
   const c=await h.clips();
-  ok(c.length>=1&&c.every(x=>x.v!=='af_heart'),'letter still sounds, from a working pack: '+c.map(x=>x.v+'/'+x.k).join());
+  ok(c.length>=1&&c.every(x=>x.v!=='angie'),'letter still sounds, from a working pack: '+c.map(x=>x.v+'/'+x.k).join());
   await h.close();
 });
 
@@ -1636,7 +1636,7 @@ T('voice-picker-layout',async()=>{
     });
     ok(r.sw<=r.iw,name+': no horizontal scroll ('+r.sw+'>'+r.iw+')');
     ok(r.bad.length===0,name+': touch targets >=48px and nothing clipped '+r.bad.join('; '));
-    ok(r.n===3,name+': three cards');
+    ok(r.n===4,name+': four cards');
     await h.page.locator('[data-sel="af_sarah"]').scrollIntoViewIfNeeded();
     ok(await h.vis('#ls-classic')||true,'');
     await h.close();
